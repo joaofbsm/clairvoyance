@@ -15,7 +15,7 @@ def auto_retry(api_call_method):
             return api_call_method(*args, **kwargs)
         except APIError as error:
             # Try Again Once
-            if error.error_code in [500]:
+            if error.error_code in [500, 503]:
                 try:
                     print("Got a 500, trying again...")
                     return api_call_method(*args, **kwargs)
@@ -54,6 +54,11 @@ def main():
     # Load and connect to your database. (Comment this code to use local memory. Don't forget to comment db.close() below too.)
     db = SQLAlchemyDB("mysql+mysqlconnector", "localhost", "lol", "root", "1234")
     riotapi.set_data_store(db)
+
+    #riotapi.get_masteries()
+    #riotapi.get_champions()
+    #riotapi.get_runes()
+    #riotapi.get_summoner_spells()
 
     # We will seed with all the summoners in Master's tier
     unpulled_summoners = deque(entry.summoner for entry in riotapi.get_master())
