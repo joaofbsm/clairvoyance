@@ -62,7 +62,7 @@ def main():
     # We need this so that we don't get a recursive loop of summoners
     pulled_summoners = deque()
 
-    gather_start = datetime(2015, 7, 23)  # 1 day after patch 5.14
+    gather_start = datetime(2017, 1, 12)  # 1 day after patch 7.1
 
     while len(unpulled_summoners) > 0:
         summoner = unpulled_summoners.popleft()
