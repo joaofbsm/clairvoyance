@@ -20,7 +20,7 @@ def auto_retry(api_call_method):
                     print("Got a 500, trying again...")
                     return api_call_method(*args, **kwargs)
                 except APIError as another_error:
-                    if another_error.error_code in [500, 400, 404]:
+                    if another_error.error_code in [500, 503, 400, 404]:
                         pass
                     else:
                         raise another_error
@@ -81,6 +81,7 @@ def main():
                 continue
             print("Stored {0} in my database".format(match))
             for participant in match.participants:
+                # cm = riotapi.get_champion_mastery(participant.summoner, participant.champion)
                 if participant.summoner not in unpulled_summoners and participant.summoner not in pulled_summoners:
                     unpulled_summoners.append(participant.summoner)
         pulled_summoners.append(summoner)
