@@ -1,16 +1,24 @@
-from numpy import loadtxt
+import sys
 import xgboost
+from numpy import loadtxt
 from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
+dataset_name = sys.argv[1]
+
 # load data
-dataset = loadtxt("pre1.csv", delimiter=",")
+dataset = loadtxt(dataset_name + ".csv", delimiter=",")
+
+dataset_input_size = {"pre1": 272,
+                      "pre2": 290}
+
+input_size = dataset_input_size[dataset_name]
 
 # split data into X and y
-X = dataset[:,0:272]
-Y = dataset[:,272]
+X = dataset[:,0:input_size]
+Y = dataset[:,input_size]
 
 # fit model no training data
 model = xgboost.XGBClassifier()
