@@ -22,12 +22,12 @@ input_size = dataset_input_size[dataset_name]
 
 # split data into X and y
 X = dataset[:,0:input_size]
-Y = dataset[:,input_size]
+y = dataset[:,input_size]
 
 # split data into train and test sets
 seed = 7
 test_size = 0.33
-X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, random_state=seed)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=seed)
 
 # fit model no training data
 model = xgboost.XGBClassifier()

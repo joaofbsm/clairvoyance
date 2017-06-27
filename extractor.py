@@ -98,6 +98,7 @@ def build_model_pre2(db, cursor):
 
     np.savetxt("pre2.csv", dataset, delimiter=",", fmt="%i")
 
+
 def main(args):
     db = MySQLdb.connect(host="localhost", user="root", passwd="1234", db="lol")
     cursor = db.cursor()
