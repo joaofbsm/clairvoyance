@@ -59,6 +59,30 @@ def onehot_team_champions_spells(match, db):
     return instance
 
 
+
+def onehot_team_masteries(match, masteries, db):
+    champion = pd.read_sql("SELECT id FROM Champion", db)
+    blue_champions = np.zeros(champion.shape[0], dtype="int")
+    red_champions = np.zeros(champion.shape[0], dtype="int")
+    winner = np.array(match["winner"].iloc[0], dtype="int")[np.newaxis]
+
+    gb = masteries.groupby(["matchId", "teamId"])
+    for name, group in gb:
+        print(name)
+        print(group)
+
+    for i, value in match[:5].iterrows():
+        index = champion.id[champion.id == value["championId"]].index.tolist()[0]
+        blue_champions[index] = 1
+
+    for i, value in match[5:10].iterrows():
+        index = champion.id[champion.id == value["championId"]].index.tolist()[0]
+        red_champions[index] = 1
+
+    instance = np.concatenate((blue_champions, red_champions, winner))
+    return instance
+
+    
 def onehot_team_damage(match, champion_damage, db):
     champion = pd.read_sql("SELECT id FROM Champion", db)
     blue_champions = np.zeros(champion.shape[0], dtype="int")
@@ -92,7 +116,7 @@ def onehot_damage_percent(match, champion_damage, db):
         blueteam_damage += champion_damage[value["championId"]]
 
     total_damage = np.sum(blueteam_damage)
-    blueteam_damage = np.around(np.divide(blueteam_damage, total_damage), decimals=5)
+    blueteam_damage = np.around(np.divide(blueteam_damage, total_damage), decimals=5) * 100
 
     for i, value in match[5:10].iterrows():
         index = champion.id[champion.id == value["championId"]].index.tolist()[0]
@@ -100,7 +124,7 @@ def onehot_damage_percent(match, champion_damage, db):
         redteam_damage += champion_damage[value["championId"]]
 
     total_damage = np.sum(redteam_damage)
-    redteam_damage = np.around(np.divide(redteam_damage, total_damage), decimals=5)
+    redteam_damage = np.around(np.divide(redteam_damage, total_damage), decimals=5) * 100
 
     instance = np.concatenate((blue_champions, blueteam_damage, red_champions, redteam_damage, winner))
     #print(instance)
@@ -143,6 +167,34 @@ def build_model_pre2(db, cursor):
 
     np.savetxt("pre2.csv", dataset, delimiter=",", fmt="%i")
 
+
+def build_model_pre3(db, cursor):
+
+    df = pd.read_sql("SELECT D.matchId, P.championId, P.teamId, T.winner "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T "
+                     "WHERE P._match_id = D.matchId AND D.mapId = 11 AND "
+                     "D.matchId = T._match_id AND P.teamId = T.teamId "
+                     "ORDER BY D.matchId, P.teamId ", db)
+
+    dfm = pd.read_sql("SELECT D.matchId, P.teamId, M.masteryId, sum(M.rank) "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, MatchMastery M "
+                     "WHERE P._match_id = D.matchId AND D.matchId = T._match_id "
+                     "AND P.teamId = T.teamId AND P._id = M._participant_id AND D.mapId = 11 "
+                     "GROUP BY D.matchId, P.teamId, M.masteryId", db)
+
+    gb = dfm.groupby(["matchId"])
+    dataset = np.zeros((df.shape[0] / 10, 363), dtype="int")
+    i = 0
+    for match in xrange(10, df.shape[0], 10):
+        print(match)
+        print(str(df[match-10:match-9]["matchId"].item()))
+        dataset[i] = onehot_team_masteries(df[match-10:match], gb["matchId"].get_group(str(df[match-10:match-9]["matchId"].item())), db)
+        #dataset[i] = np.concatenate((dataset[i], winner))
+        #print(df.iloc[match - 10]["matchId"])
+        i += 1
+
+    np.savetxt("pre1.csv", dataset, delimiter=",", fmt="%i")
+        
 
 def build_model_pre5(db, cursor):
     df = pd.read_sql("SELECT D.matchId, P.championId, P.teamId, T.winner "
@@ -197,6 +249,7 @@ def main(args):
 
     feature_models = {"pre1": build_model_pre1,
                       "pre2": build_model_pre2,
+                      "pre3": build_model_pre3,
                       "pre5": build_model_pre5,
                       "pre6": build_model_pre6}
     model = feature_models[args[0]](db, cursor)

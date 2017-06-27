@@ -66,7 +66,7 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
     train_scores_std = np.std(train_scores, axis=1)
     test_scores_mean = np.mean(test_scores, axis=1)
     test_scores_std = np.std(test_scores, axis=1)
-    plt.grid()
+    #plt.grid()
 
     plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
                      train_scores_mean + train_scores_std, alpha=0.1,
@@ -87,7 +87,9 @@ dataset_name = sys.argv[1]
 dataset = np.loadtxt(dataset_name + ".csv", delimiter=",")
 
 dataset_input_size = {"pre1": 272,
-                      "pre2": 290}
+                      "pre2": 290,
+                      "pre5": 278,
+                      "pre6": 276}
 
 input_size = dataset_input_size[dataset_name]
 
@@ -100,6 +102,18 @@ title = "Learning Curves (XGBoost)"
 # score curves, each time with 20% data randomly selected as a validation set.
 cv = ShuffleSplit(n_splits=10, test_size=0.1, random_state=0)
 
+estimator = xgboost.XGBClassifier()
+plot_learning_curve(estimator, title, X, y, cv=cv, n_jobs=4)
+
+dataset = np.loadtxt("pre1.csv", delimiter=",")
+input_size = 272
+# split data into X and y
+X = dataset[:,0:input_size]
+y = dataset[:,input_size]
+
+# Cross validation with 100 iterations to get smoother mean test and train
+# score curves, each time with 20% data randomly selected as a validation set.
+cv = ShuffleSplit(n_splits=10, test_size=0.1, random_state=0)
 estimator = xgboost.XGBClassifier()
 plot_learning_curve(estimator, title, X, y, cv=cv, n_jobs=4)
 

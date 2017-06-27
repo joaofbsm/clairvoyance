@@ -10,7 +10,9 @@ dataset_name = sys.argv[1]
 dataset = loadtxt(dataset_name + ".csv", delimiter=",")
 
 dataset_input_size = {"pre1": 272,
-                      "pre2": 290}
+                      "pre2": 290,
+                      "pre5": 278,
+                      "pre6": 276}
 
 input_size = dataset_input_size[dataset_name]
 
