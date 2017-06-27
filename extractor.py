@@ -66,13 +66,16 @@ def build_model_pre1(db, cursor):
                      "FROM MatchParticipant P, MatchDetail D, MatchTeam T "
                      "WHERE P._match_id = D.matchId AND D.mapId = 11 AND "
                      "D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "ORDER BY D.matchId, P.teamId", db)
+                     "ORDER BY D.matchId, P.teamId "
+                     "LIMIT 1000", db)
 
     dataset = np.zeros((df.shape[0] / 10, 273), dtype="int")
     i = 0
     for match in xrange(10, df.shape[0], 10):
         print(match)
         dataset[i] = onehot_team_champions(df[match-10:match], db)
+        #dataset[i] = np.concatenate((dataset[i], winner))
+        #print(df.iloc[match - 10]["matchId"])
         i += 1
 
     np.savetxt("pre1.csv", dataset, delimiter=",", fmt="%i")
