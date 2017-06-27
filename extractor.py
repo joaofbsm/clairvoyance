@@ -6,8 +6,22 @@ import MySQLdb
 import pandas as pd
 import numpy as np
 
-def onehot_summoner_champion(match, db):
-    pass
+def onehot_team_champions(match, db):
+    champion = pd.read_sql("SELECT id FROM Champion", db)
+    blue_champions = np.zeros(champion.shape[0], dtype="int")
+    red_champions = np.zeros(champion.shape[0], dtype="int")
+    winner = np.array(match["winner"].iloc[0], dtype="int")[np.newaxis]
+    for i, value in match[:5].iterrows():
+        index = champion.id[champion.id == value["championId"]].index.tolist()[0]
+        blue_champions[index] = 1
+
+    for i, value in match[5:10].iterrows():
+        index = champion.id[champion.id == value["championId"]].index.tolist()[0]
+        red_champions[index] = 1
+
+    instance = np.concatenate((blue_champions, red_champions, winner))
+    return instance
+
 
 def onehot_team_champions_spells(match, db):
     champion = pd.read_sql("SELECT id FROM Champion", db)
@@ -44,20 +58,25 @@ def onehot_team_champions_spells(match, db):
     instance = np.concatenate((blue_spells, blue_champions, red_spells, red_champions, winner))
     return instance
 
-def onehot_team_champions(match, db):
+
+def onehot_team_damage(match, champion_damage, db):
     champion = pd.read_sql("SELECT id FROM Champion", db)
     blue_champions = np.zeros(champion.shape[0], dtype="int")
     red_champions = np.zeros(champion.shape[0], dtype="int")
+    blueteam_damage = np.zeros((3))
+    redteam_damage = np.zeros((3))
     winner = np.array(match["winner"].iloc[0], dtype="int")[np.newaxis]
     for i, value in match[:5].iterrows():
         index = champion.id[champion.id == value["championId"]].index.tolist()[0]
         blue_champions[index] = 1
+        blueteam_damage += champion_damage[value["championId"]]
 
     for i, value in match[5:10].iterrows():
         index = champion.id[champion.id == value["championId"]].index.tolist()[0]
         red_champions[index] = 1
+        redteam_damage += champion_damage[value["championId"]]
 
-    instance = np.concatenate((blue_champions, red_champions, winner))
+    instance = np.concatenate((blue_champions, blueteam_damage, red_champions, redteam_damage, winner))
     return instance
 
 
@@ -66,8 +85,7 @@ def build_model_pre1(db, cursor):
                      "FROM MatchParticipant P, MatchDetail D, MatchTeam T "
                      "WHERE P._match_id = D.matchId AND D.mapId = 11 AND "
                      "D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "ORDER BY D.matchId, P.teamId "
-                     "LIMIT 1000", db)
+                     "ORDER BY D.matchId, P.teamId ", db)
 
     dataset = np.zeros((df.shape[0] / 10, 273), dtype="int")
     i = 0
@@ -99,6 +117,28 @@ def build_model_pre2(db, cursor):
     np.savetxt("pre2.csv", dataset, delimiter=",", fmt="%i")
 
 
+def build_model_pre5(db, cursor):
+    df = pd.read_sql("SELECT D.matchId, P.championId, P.teamId, T.winner "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T "
+                     "WHERE P._match_id = D.matchId AND D.mapId = 11 AND "
+                     "D.matchId = T._match_id AND P.teamId = T.teamId "
+                     "ORDER BY D.matchId, P.teamId ", db)
+
+    dfd = pd.read_sql("SELECT _champion_id, attack, defense, magic "
+                     "FROM ChampionInfo "
+                     "ORDER BY _champion_id", db)
+    champion_damage = dfd.set_index("_champion_id").T.to_dict("list")
+
+    dataset = np.zeros((df.shape[0] / 10, 279), dtype="int")
+    i = 0
+    for match in xrange(10, df.shape[0], 10):
+        print(match)
+        dataset[i] = onehot_team_damage(df[match-10:match], champion_damage, db)
+        i += 1
+
+    np.savetxt("pre5.csv", dataset, delimiter=",", fmt="%i")
+
+
 def main(args):
     db = MySQLdb.connect(host="localhost", user="root", passwd="1234", db="lol")
     cursor = db.cursor()
@@ -108,7 +148,8 @@ def main(args):
     cursor.execute('SET character_set_connection=utf8;')
 
     feature_models = {"pre1": build_model_pre1,
-                      "pre2": build_model_pre2}
+                      "pre2": build_model_pre2,
+                      "pre5": build_model_pre5}
     model = feature_models[args[0]](db, cursor)
 
     cursor.close()
