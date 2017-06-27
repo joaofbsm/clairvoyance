@@ -14,7 +14,9 @@ dataset_name = sys.argv[1]
 dataset = loadtxt(dataset_name + ".csv", delimiter=",")
 
 dataset_input_size = {"pre1": 272,
-                      "pre2": 290}
+                      "pre2": 290,
+                      "pre5": 278,
+                      "pre6": 276}
 
 input_size = dataset_input_size[dataset_name]
 
@@ -23,7 +25,7 @@ X = dataset[:,0:input_size]
 y = dataset[:,input_size]
 
 # fit model no training data
-model = xgboost.XGBClassifier()
+model = xgboost.XGBClassifier(n_estimators=100, learning_rate=0.1, max_depth=2)
 #model = RandomForestClassifier(n_estimators=100)
 
 kfold = KFold(n_splits=10, random_state=7)

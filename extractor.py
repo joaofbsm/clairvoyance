@@ -79,6 +79,33 @@ def onehot_team_damage(match, champion_damage, db):
     instance = np.concatenate((blue_champions, blueteam_damage, red_champions, redteam_damage, winner))
     return instance
 
+def onehot_damage_percent(match, champion_damage, db):
+    champion = pd.read_sql("SELECT id FROM Champion", db)
+    blue_champions = np.zeros(champion.shape[0], dtype="int")
+    red_champions = np.zeros(champion.shape[0], dtype="int")
+    blueteam_damage = np.zeros((2))
+    redteam_damage = np.zeros((2))
+    winner = np.array(match["winner"].iloc[0], dtype="int")[np.newaxis]
+    for i, value in match[:5].iterrows():
+        index = champion.id[champion.id == value["championId"]].index.tolist()[0]
+        blue_champions[index] = 1
+        blueteam_damage += champion_damage[value["championId"]]
+
+    total_damage = np.sum(blueteam_damage)
+    blueteam_damage = np.around(np.divide(blueteam_damage, total_damage), decimals=5)
+
+    for i, value in match[5:10].iterrows():
+        index = champion.id[champion.id == value["championId"]].index.tolist()[0]
+        red_champions[index] = 1
+        redteam_damage += champion_damage[value["championId"]]
+
+    total_damage = np.sum(redteam_damage)
+    redteam_damage = np.around(np.divide(redteam_damage, total_damage), decimals=5)
+
+    instance = np.concatenate((blue_champions, blueteam_damage, red_champions, redteam_damage, winner))
+    #print(instance)
+    return instance  
+
 
 def build_model_pre1(db, cursor):
     df = pd.read_sql("SELECT D.matchId, P.championId, P.teamId, T.winner "
@@ -138,6 +165,27 @@ def build_model_pre5(db, cursor):
 
     np.savetxt("pre5.csv", dataset, delimiter=",", fmt="%i")
 
+def build_model_pre6(db, cursor):
+    df = pd.read_sql("SELECT D.matchId, P.championId, P.teamId, T.winner "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T "
+                     "WHERE P._match_id = D.matchId AND D.mapId = 11 AND "
+                     "D.matchId = T._match_id AND P.teamId = T.teamId "
+                     "ORDER BY D.matchId, P.teamId ", db)
+
+    dfd = pd.read_sql("SELECT _champion_id, attack, magic "
+                     "FROM ChampionInfo "
+                     "ORDER BY _champion_id", db)
+    champion_damage = dfd.set_index("_champion_id").T.to_dict("list")
+
+    dataset = np.zeros((df.shape[0] / 10, 277))
+    i = 0
+    for match in xrange(10, df.shape[0], 10):
+        print(match)
+        dataset[i] = onehot_damage_percent(df[match-10:match], champion_damage, db)
+        #print(dataset[i])
+        i += 1
+
+    np.savetxt("pre6.csv", dataset, delimiter=",", fmt="%.5g")
 
 def main(args):
     db = MySQLdb.connect(host="localhost", user="root", passwd="1234", db="lol")
@@ -149,7 +197,8 @@ def main(args):
 
     feature_models = {"pre1": build_model_pre1,
                       "pre2": build_model_pre2,
-                      "pre5": build_model_pre5}
+                      "pre5": build_model_pre5,
+                      "pre6": build_model_pre6}
     model = feature_models[args[0]](db, cursor)
 
     cursor.close()
