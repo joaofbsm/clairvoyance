@@ -46,6 +46,13 @@ def main():
     cursor.execute('SET CHARACTER SET utf8;')
     cursor.execute('SET character_set_connection=utf8;')
 
+    cursor.execute("SELECT id FROM Summoner")
+    summoners = list(cursor)
+    id_ = summoners[0][0]
+
+    cursor.close()
+    db.close()
+
     # Setup riotapi
     riotapi.set_region("NA")
     riotapi.print_calls(True)
@@ -53,14 +60,7 @@ def main():
     riotapi.set_api_key(key)
     riotapi.set_load_policy(LoadPolicy.lazy)
 
-    cursor.execute("SELECT id FROM Summoner")
-    summoners = list(cursor)
-    for (summoner,) in summoners:
-        total_mast = championmasteryapi.get_champion_mastery_score(summoner)
-        cursor.execute("INSERT INTO SummonerMasteries (summId, mastery) VALUES (%s, %s)", (summoner, total_mast))
-
-    cursor.close()
-    db.close()
+    champ_mast = championmasteryapi.get_champion_mastery(summoner, champion)
 
 
 if __name__ == "__main__":
