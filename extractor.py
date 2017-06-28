@@ -465,6 +465,17 @@ def team_features_zero_to_ten(match, cursor):
     return zero_to_ten
 
 
+def remove_incomplete_instances(dataset):
+    incomplete_instances = []
+    for i, instance in enumerate(dataset):
+        complete = np.count_nonzero(instance)
+        if not complete:
+            incomplete_instances.append(i)
+
+    print(len(incomplete_instances), "incomplete instances:\n\n", incomplete_instances)
+    dataset = np.delete(dataset, incomplete_instances, axis=0)
+
+    return dataset
 
 def build_model_pre_in1(db, cursor):
     df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
@@ -487,6 +498,8 @@ def build_model_pre_in1(db, cursor):
         #zero_to_ten_diff = zero_to_ten[:4] - zero_to_ten[4:]
         winner = np.array(df["winner"].iloc[match], dtype="int")[np.newaxis]
         dataset[i] = np.concatenate((champions, zero_to_ten, winner))
+
+    dataset = remove_incomplete_instances(dataset)
 
     np.savetxt("prein1.csv", dataset, delimiter=",", fmt="%.5g")
 
