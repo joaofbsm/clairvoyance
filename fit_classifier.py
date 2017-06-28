@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import sys
 import xgboost
 from numpy import loadtxt
@@ -16,7 +19,13 @@ dataset_name = sys.argv[1]
 dataset = loadtxt(dataset_name + ".csv", delimiter=",")
 
 dataset_input_size = {"pre1": 272,
-                      "pre2": 290}
+                      "pre2": 290,
+                      "pre5": 278,
+                      "pre6": 276,
+                      "pre7": 274,
+                      "pre8": 274,
+                      "pre9": 282,
+                      "prein1": 280}
 
 input_size = dataset_input_size[dataset_name]
 

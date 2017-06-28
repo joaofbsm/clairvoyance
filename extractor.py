@@ -64,7 +64,6 @@ def onehot_team_champions_spells(match, db):
     return instance
 
 
-
 def onehot_team_masteries(match, masteries, db):
     champion = pd.read_sql("SELECT id FROM Champion", db)
     blue_champions = np.zeros(champion.shape[0], dtype="int")
@@ -414,6 +413,84 @@ def build_model_pre9(db, cursor):
     np.savetxt("pre9.csv", dataset, delimiter=",", fmt="%.5g")
 
 
+def team_features_zero_to_ten(match, cursor):
+    get_features = ("SELECT PL.summonerId, PTD._type, PTD.zeroToTen "
+                    "FROM MatchParticipant PA, MatchPlayer PL, "
+                    "MatchParticipantTimeline PT, "
+                    "MatchParticipantTimelineData PTD "
+                    "WHERE PL.summonerId = %s AND PA._match_id = %s "
+                    "AND PL._participant_id = PA._id "
+                    "AND PA._id = PT._participant_id "
+                    "AND PT._id = PTD._timeline_id")
+
+    blue_team = match[:5]
+    red_team = match[5:10]
+    blue_zero_to_ten = np.zeros(4)
+    red_zero_to_ten = np.zeros(4)
+
+    for _, player in blue_team.iterrows():
+        cursor.execute(get_features, (player["summonerId"],
+                                      player["matchId"]))
+        player_features = list(cursor)
+        if not player_features:
+            return None
+        for features in player_features:
+            if features[1] == "creepsPerMinDeltas":
+                blue_zero_to_ten[0] += features[2]
+            elif features[1] == "damageTakenPerMinDeltas":
+                blue_zero_to_ten[1] += features[2]
+            elif features[1] == "goldPerMinDeltas":
+                blue_zero_to_ten[2] += features[2]
+            elif features[1] == "xpPerMinDeltas":
+                blue_zero_to_ten[3] += features[2]
+
+    for _, player in red_team.iterrows():
+        cursor.execute(get_features, (player["summonerId"],
+                                      player["matchId"]))
+        player_features = list(cursor)
+        if not player_features:
+            return None
+        for features in player_features:
+            if features[1] == "creepsPerMinDeltas":
+                red_zero_to_ten[0] += features[2]
+            elif features[1] == "damageTakenPerMinDeltas":
+                red_zero_to_ten[1] += features[2]
+            elif features[1] == "goldPerMinDeltas":
+                red_zero_to_ten[2] += features[2]
+            elif features[1] == "xpPerMinDeltas":
+                red_zero_to_ten[3] += features[2]
+
+    zero_to_ten = np.concatenate((blue_zero_to_ten, red_zero_to_ten))
+
+    return zero_to_ten
+
+
+
+def build_model_pre_in1(db, cursor):
+    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
+                     " T.winner "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
+                     "MatchPlayer PL "
+                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
+                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
+                     "AND PL._participant_id = P._id "
+                     "ORDER BY D.matchId, P.teamId ", db)
+
+    dataset = np.zeros((df.shape[0] / 10, 281))
+    for i, match in enumerate(xrange(0, df.shape[0] - 10, 10)):
+        print(i + 1)  # Current processing match
+
+        champions = onehot_champions(df[match:match + 10], db)
+        zero_to_ten = team_features_zero_to_ten(df[match:match + 10], cursor)
+        if zero_to_ten is None:
+            continue
+        #zero_to_ten_diff = zero_to_ten[:4] - zero_to_ten[4:]
+        winner = np.array(df["winner"].iloc[match], dtype="int")[np.newaxis]
+        dataset[i] = np.concatenate((champions, zero_to_ten, winner))
+
+    np.savetxt("prein1.csv", dataset, delimiter=",", fmt="%.5g")
+
+
 def main(args):
     db = MySQLdb.connect(host="localhost", user="root", passwd="1234", 
                          db="lol")
@@ -431,7 +508,8 @@ def main(args):
                       "pre6": build_model_pre6,
                       "pre7": build_model_pre7,
                       "pre8": build_model_pre8,
-                      "pre9": build_model_pre9}
+                      "pre9": build_model_pre9,
+                      "prein1": build_model_pre_in1}
     model = feature_models[args[0]](db, cursor)
 
     cursor.close()
