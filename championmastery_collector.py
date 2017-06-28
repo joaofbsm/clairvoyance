@@ -52,16 +52,15 @@ def main():
     key = os.environ["DEV_KEY"]  # You can create an env var called "DEV_KEY" that holds your developer key. It will be loaded here.
     riotapi.set_api_key(key)
     riotapi.set_load_policy(LoadPolicy.lazy)
-    cursor.execute("SELECT id FROM Summoner")
-    summoners = list(cursor)
-    print(summoners)
-    for (summoner,) in summoners:
-        cursor.execute("SELECT EXISTS (SELECT * FROM SummonerMasteries WHERE summId = %s)", [summoner])
+
+    cursor.execute("SELECT summonerId, championId FROM MatchParticipant PA, MatchPlayer PL WHERE PL._participant_id = PA._id")
+    result = list(cursor)
+    for summoner, champion in result:
+        cursor.execute("SELECT EXISTS (SELECT * FROM SummonerChampMasteries WHERE summId = %s AND championId = %s)", (summoner, champion))
         is_present = list(cursor)[0][0]
         if not is_present:
-            print("hello")
-            total_mast = championmasteryapi.get_champion_mastery_score(summoner)
-            cursor.execute("INSERT INTO SummonerMasteries (summId, mastery) VALUES (%s, %s)", (summoner, total_mast))
+            champion_mastery = championmasteryapi.get_champion_mastery(summoner, champion)
+            cursor.execute("INSERT INTO SummonerChampMasteries (summId, championId, mastery) VALUES (%s, %s, %s)", (summoner, champion, champion_mastery.championLevel))
 
     cursor.close()
     db.close()
