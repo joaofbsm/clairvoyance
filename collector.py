@@ -50,7 +50,7 @@ def main():
     # Setup riotapi
     riotapi.set_region("BR")
     riotapi.print_calls(True)
-    key = os.environ["DEV_KEY"]  # You can create an env var called "DEV_KEY" that holds your developer key. It will be loaded here.
+    key = os.environ["DEV_KEY1"]  # You can create an env var called "DEV_KEY" that holds your developer key. It will be loaded here.
     riotapi.set_api_key(key)
     riotapi.set_load_policy(LoadPolicy.lazy)
 

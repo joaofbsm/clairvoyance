@@ -504,6 +504,34 @@ def build_model_pre_in1(db, cursor):
     np.savetxt("prein1.csv", dataset, delimiter=",", fmt="%.5g")
 
 
+def build_model_pre_in1_diff(db, cursor):
+    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
+                     " T.winner "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
+                     "MatchPlayer PL "
+                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
+                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
+                     "AND PL._participant_id = P._id "
+                     "ORDER BY D.matchId, P.teamId ", db)
+
+    dataset = np.zeros((df.shape[0] / 10, 285))
+    for i, match in enumerate(xrange(0, df.shape[0] - 10, 10)):
+        print(i + 1)  # Current processing match
+
+        champions = onehot_champions(df[match:match + 10], db)
+        zero_to_ten = team_features_zero_to_ten(df[match:match + 10], cursor)
+        if zero_to_ten is None:
+            continue
+        zero_to_ten_diff = zero_to_ten[:4] - zero_to_ten[4:]
+        winner = np.array(df["winner"].iloc[match], dtype="int")[np.newaxis]
+        dataset[i] = np.concatenate((champions, zero_to_ten, zero_to_ten_diff,
+                                     winner))
+
+    dataset = remove_incomplete_instances(dataset)
+
+    np.savetxt("prein1.csv", dataset, delimiter=",", fmt="%.5g")
+
+
 def main(args):
     db = MySQLdb.connect(host="localhost", user="root", passwd="1234", 
                          db="lol")
@@ -522,7 +550,8 @@ def main(args):
                       "pre7": build_model_pre7,
                       "pre8": build_model_pre8,
                       "pre9": build_model_pre9,
-                      "prein1": build_model_pre_in1}
+                      "prein1": build_model_pre_in1,
+                      "prein1diff": build_model_pre_in1_diff}
     model = feature_models[args[0]](db, cursor)
 
     cursor.close()

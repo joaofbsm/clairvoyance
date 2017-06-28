@@ -96,7 +96,8 @@ dataset_input_size = {"pre1": 272,
                       "pre7": 274,
                       "pre8": 274,
                       "pre9": 282,
-                      "prein1": 280}
+                      "prein1": 280,
+                      "prein1diff": 284}
 
 input_size = dataset_input_size[dataset_name]
 

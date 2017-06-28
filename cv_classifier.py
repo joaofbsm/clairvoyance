@@ -23,7 +23,8 @@ dataset_input_size = {"pre1": 272,
                       "pre7": 274,
                       "pre8": 274,
                       "pre9": 282,
-                      "prein1": 280}
+                      "prein1": 280,
+                      "prein1diff": 284}
 
 input_size = dataset_input_size[dataset_name]
 
@@ -35,6 +36,6 @@ y = dataset[:,input_size]
 model = xgboost.XGBClassifier(n_estimators=100, learning_rate=0.1, max_depth=2)
 #model = RandomForestClassifier(n_estimators=100)
 
-kfold = KFold(n_splits=10, random_state=7)
+kfold = KFold(n_splits=5, random_state=7)
 results = cross_val_score(model, X, y, cv=kfold)
 print("Accuracy: %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
