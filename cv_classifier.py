@@ -16,17 +16,20 @@ dataset_name = sys.argv[1]
 # load data
 dataset = loadtxt(dataset_name + ".csv", delimiter=",")
 
-dataset_input_size = {"pre1": 272,
-                      "pre2": 290,
-                      "pre5": 278,
-                      "pre6": 276,
-                      "pre7": 274,
-                      "pre8": 274,
-                      "pre9": 282,
-                      "prein1": 280,
-                      "prein1diff": 284}
+if dataset_name == "feat_test":
+    input_size = int(sys.argv[2])
+else:
+    dataset_input_size = {"pre1": 272,
+                          "pre2": 290,
+                          "pre5": 278,
+                          "pre6": 276,
+                          "pre7": 274,
+                          "pre8": 274,
+                          "pre9": 282,
+                          "prein1": 280,
+                          "prein1all": 284}
 
-input_size = dataset_input_size[dataset_name]
+    input_size = dataset_input_size[dataset_name]
 
 # split data into X and y
 X = dataset[:,0:input_size]

@@ -10,6 +10,7 @@ import sys
 import MySQLdb
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
 def onehot_team_champions(match, db):
     champion = pd.read_sql("SELECT id FROM Champion", db)
@@ -354,8 +355,10 @@ def build_model_pre7(db, cursor):
                      "ORDER BY D.matchId, P.teamId ", db)
 
     dataset = np.zeros((df.shape[0] / 10, 275))
+    bar = tqdm(total=df.shape[0] / 10)
     for i, match in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        print(i + 1)  # Current processing match
+        #print(i + 1)  # Current processing match
+        bar.update(1)
 
         champions = onehot_champions(df[match:match + 10], db)
         mastery_scores = mastery_scores_team(df[match:match + 10], cursor)
@@ -377,8 +380,10 @@ def build_model_pre8(db, cursor):
                      "ORDER BY D.matchId, P.teamId ", db)
 
     dataset = np.zeros((df.shape[0] / 10, 275))
+    bar = tqdm(total=df.shape[0] / 10)
     for i, match in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        print(i + 1)  # Current processing match
+        #print(i + 1)  # Current processing match
+        bar.update(1)
 
         champions = onehot_champions(df[match:match + 10], db)
         champion_masteries = champion_masteries_team(df[match:match + 10], 
@@ -401,8 +406,10 @@ def build_model_pre9(db, cursor):
                      "ORDER BY D.matchId, P.teamId ", db)
 
     dataset = np.zeros((df.shape[0] / 10, 283))
+    bar = tqdm(total=df.shape[0] / 10)
     for i, match in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        print(i + 1)  # Current processing match
+        #print(i + 1)  # Current processing match
+        bar.update(1)
 
         champions = onehot_champions(df[match:match + 10], db)
         champion_masteries = champion_masteries_summoner(df[match:match + 10], 
@@ -472,7 +479,8 @@ def remove_incomplete_instances(dataset):
         if not complete:
             incomplete_instances.append(i)
 
-    print(len(incomplete_instances), "incomplete instances:\n\n", incomplete_instances)
+    print("\n\n", len(incomplete_instances), "incomplete instances:\n\n", 
+          incomplete_instances)
     dataset = np.delete(dataset, incomplete_instances, axis=0)
 
     return dataset
@@ -488,8 +496,10 @@ def build_model_pre_in1(db, cursor):
                      "ORDER BY D.matchId, P.teamId ", db)
 
     dataset = np.zeros((df.shape[0] / 10, 281))
+    bar = tqdm(total=df.shape[0] / 10)
     for i, match in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        print(i + 1)  # Current processing match
+        #print(i + 1)  # Current processing match
+        bar.update(1)
 
         champions = onehot_champions(df[match:match + 10], db)
         zero_to_ten = team_features_zero_to_ten(df[match:match + 10], cursor)
@@ -504,7 +514,10 @@ def build_model_pre_in1(db, cursor):
     np.savetxt("prein1.csv", dataset, delimiter=",", fmt="%.5g")
 
 
-def build_model_pre_in1_diff(db, cursor):
+def build_model_pre_in1_all(db, cursor):
+    """In attributes + diff."""
+
+
     df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
                      " T.winner "
                      "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
@@ -515,8 +528,10 @@ def build_model_pre_in1_diff(db, cursor):
                      "ORDER BY D.matchId, P.teamId ", db)
 
     dataset = np.zeros((df.shape[0] / 10, 285))
+    bar = tqdm(total=df.shape[0] / 10)
     for i, match in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        print(i + 1)  # Current processing match
+        #print(i + 1)  # Current processing match
+        bar.update(1)
 
         champions = onehot_champions(df[match:match + 10], db)
         zero_to_ten = team_features_zero_to_ten(df[match:match + 10], cursor)
@@ -529,7 +544,63 @@ def build_model_pre_in1_diff(db, cursor):
 
     dataset = remove_incomplete_instances(dataset)
 
-    np.savetxt("prein1.csv", dataset, delimiter=",", fmt="%.5g")
+    np.savetxt("prein1diff.csv", dataset, delimiter=",", fmt="%.5g")
+
+
+def feature_testing(db, cursor):
+    """[summary]
+    
+    [description]
+    
+    Arguments:
+        db -- [description]
+        cursor -- [description]
+
+    Size of features
+    ----------------
+
+    onehot_champions: 272
+    mastery_scores_team = 2
+    mastery_scores_diff = 1
+    zero_to_ten = 8
+    zero_to_ten_diff = 4
+    winner: 1
+
+    TOTAL: 288
+    """
+
+    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
+                     " T.winner "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
+                     "MatchPlayer PL "
+                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
+                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
+                     "AND PL._participant_id = P._id "
+                     "ORDER BY D.matchId, P.teamId ", db)
+
+    dataset = np.zeros((df.shape[0] / 10, 16))
+    bar = tqdm(total=df.shape[0] / 10)
+    for i, match in enumerate(xrange(0, df.shape[0] - 10, 10)):
+        bar.update(1)
+
+        #champions = onehot_champions(df[match:match + 10], db)
+
+        mastery_scores = mastery_scores_team(df[match:match + 10], cursor)
+        mastery_scores_diff = mastery_scores[0] - mastery_scores[1]
+        mastery_scores_diff = mastery_scores_diff[np.newaxis]
+
+        zero_to_ten = team_features_zero_to_ten(df[match:match + 10], cursor)
+        if zero_to_ten is None:
+            continue
+        zero_to_ten_diff = zero_to_ten[:4] - zero_to_ten[4:]
+
+        winner = np.array(df["winner"].iloc[match], dtype="int")[np.newaxis]
+
+        dataset[i] = np.concatenate((mastery_scores, mastery_scores_diff, zero_to_ten, zero_to_ten_diff, winner))
+
+    dataset = remove_incomplete_instances(dataset)
+
+    np.savetxt("feat_test.csv", dataset, delimiter=",", fmt="%.5g")
 
 
 def main(args):
@@ -551,7 +622,8 @@ def main(args):
                       "pre8": build_model_pre8,
                       "pre9": build_model_pre9,
                       "prein1": build_model_pre_in1,
-                      "prein1diff": build_model_pre_in1_diff}
+                      "prein1all": build_model_pre_in1_all,
+                      "feat_test": feature_testing}
     model = feature_models[args[0]](db, cursor)
 
     cursor.close()
