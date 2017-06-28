@@ -66,9 +66,13 @@ def main():
                            "WHERE PL.summonerId = %s "
                            "AND PL._participant_id = PA._id "
                            "AND PA._match_id = D.matchId", [summoner])
-            region = list(cursor)[0][0]
-            riotapi.set_region(region)
-            mastery_score = championmasteryapi.get_champion_mastery_score(summoner)
+            region = list(cursor)
+            if region:
+                region = region[0][0]
+                riotapi.set_region(region)
+                mastery_score = championmasteryapi.get_champion_mastery_score(summoner)
+            else:
+                mastery_score = 0
             cursor.execute("INSERT INTO SummonerMasteries (summId, mastery) VALUES (%s, %s)", (summoner, mastery_score))
 
     cursor.close()
