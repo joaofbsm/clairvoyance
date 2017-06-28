@@ -60,6 +60,13 @@ def main():
         cursor.execute("SELECT EXISTS (SELECT * FROM SummonerChampMasteries WHERE summId = %s AND championId = %s)", (summoner, champion))
         is_present = list(cursor)[0][0]
         if not is_present:
+            cursor.execute("SELECT region "
+                           "FROM MatchParticipant PA, MatchPlayer PL, MatchDetail D "
+                           "WHERE PL.summonerId = %s AND PA.championId = %s "
+                           "AND PL._participant_id = PA._id "
+                           "AND PA._match_id = D.matchId", (summoner, champion))
+            region = list(cursor)[0][0]
+            riotapi.set_region(region)
             champion_mastery = championmasteryapi.get_champion_mastery(summoner, champion)
             cursor.execute("INSERT INTO SummonerChampMasteries (summId, championId, mastery) VALUES (%s, %s, %s)", (summoner, champion, champion_mastery.championLevel))
 
