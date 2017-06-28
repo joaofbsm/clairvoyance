@@ -5,6 +5,7 @@ import sys
 import xgboost
 import numpy as np
 import matplotlib.pyplot as plt
+import global_constants as gc
 from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
@@ -90,19 +91,9 @@ dataset_name = sys.argv[1]
 dataset = np.loadtxt(dataset_name + ".csv", delimiter=",")
 
 if dataset_name == "feat_test":
-    input_size = int(sys.argv[2])
+    input_size = int(sys.argv[2]) - 1
 else:
-    dataset_input_size = {"pre1": 272,
-                          "pre2": 290,
-                          "pre5": 278,
-                          "pre6": 276,
-                          "pre7": 274,
-                          "pre8": 274,
-                          "pre9": 282,
-                          "prein1": 280,
-                          "prein1all": 284}
-
-    input_size = dataset_input_size[dataset_name]
+    input_size = gc.dataset_input_size[dataset_name]
 
 # split data into X and y
 X = dataset[:,0:input_size]

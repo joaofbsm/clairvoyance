@@ -548,14 +548,7 @@ def build_model_pre_in1_all(db, cursor):
 
 
 def feature_testing(db, cursor):
-    """[summary]
-    
-    [description]
-    
-    Arguments:
-        db -- [description]
-        cursor -- [description]
-
+    """
     Size of features
     ----------------
 
