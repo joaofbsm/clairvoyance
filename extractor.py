@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""Feature extractor and model builder"""
+
 from __future__ import print_function
 
 import os
@@ -82,7 +87,7 @@ def onehot_team_masteries(match, masteries, db):
     instance = np.concatenate((blue_champions, red_champions, winner))
     return instance
 
-    
+
 def onehot_team_damage(match, champion_damage, db):
     champion = pd.read_sql("SELECT id FROM Champion", db)
     blue_champions = np.zeros(champion.shape[0], dtype="int")
@@ -239,9 +244,81 @@ def build_model_pre6(db, cursor):
 
     np.savetxt("pre6.csv", dataset, delimiter=",", fmt="%.5g")
 
+
+def onehot_champions(match, db):
+    champions = pd.read_sql("SELECT id FROM Champion", db)
+    champions["pos"] = champions.index
+    champions = champions.set_index("id").to_dict()
+
+    blue_team = match[:5]
+    red_team = match[5:10]
+
+    blue_champions = np.zeros(len(champions["pos"]), dtype="int")
+    red_champions = np.zeros(len(champions["pos"]), dtype="int")
+
+    for _, player in blue_team.iterrows():
+        pos = champions["pos"][player["championId"]]
+        blue_champions[pos] = 1
+
+    for _, player in red_team.iterrows():
+        pos = champions["pos"][player["championId"]]
+        red_champions[pos] = 1
+
+    result = np.concatenate((blue_champions, red_champions))
+    return result
+
+
+def mastery_scores_team(match, cursor):
+    get_mastery_scores = ("SELECT mastery "
+                          "FROM SummonerMasteries "
+                          "WHERE summId = %s")
+
+    blue_team = match[:5]
+    red_team = match[5:10]
+    mastery_scores = np.zeros(2, dtype="int")
+    
+    for _, player in blue_team.iterrows():
+        cursor.execute(get_mastery_scores, [player["summonerId"]])
+        mastery_score = list(cursor)[0][0]
+        mastery_scores[0] += mastery_score
+
+
+    for _, player in red_team.iterrows():
+        cursor.execute(get_mastery_scores, [player["summonerId"]])
+        mastery_score = list(cursor)[0][0]
+        mastery_scores[1] += mastery_score
+
+    return mastery_scores
+
+
+def build_model_pre7(db, cursor):
+    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
+                     " T.winner "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
+                     "MatchPlayer PL "
+                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
+                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
+                     "AND PL._participant_id = P._id "
+                     "ORDER BY D.matchId, P.teamId ", db)
+
+    dataset = np.zeros((df.shape[0] / 10, 275))
+    for i, match in enumerate(xrange(0, df.shape[0] - 10, 10)):
+        print(i + 1)  # Current processing match
+
+        champions = onehot_champions(df[match:match + 10], db)
+        mastery_scores = mastery_scores_team(df[match:match + 10], cursor)
+        #mastery_scores_diff = mastery_scores[0] - mastery_scores[1]
+        winner = np.array(df["winner"].iloc[match], dtype="int")[np.newaxis]
+        dataset[i] = np.concatenate((champions, mastery_scores, winner))
+
+    np.savetxt("pre7.csv", dataset, delimiter=",", fmt="%.5g")
+
+
 def main(args):
-    db = MySQLdb.connect(host="localhost", user="root", passwd="1234", db="lol")
+    db = MySQLdb.connect(host="localhost", user="root", passwd="1234", 
+                         db="lol")
     cursor = db.cursor()
+
     db.set_character_set('utf8')
     cursor.execute('SET NAMES utf8;')
     cursor.execute('SET CHARACTER SET utf8;')
@@ -251,7 +328,8 @@ def main(args):
                       "pre2": build_model_pre2,
                       "pre3": build_model_pre3,
                       "pre5": build_model_pre5,
-                      "pre6": build_model_pre6}
+                      "pre6": build_model_pre6,
+                      "pre7": build_model_pre7}
     model = feature_models[args[0]](db, cursor)
 
     cursor.close()
