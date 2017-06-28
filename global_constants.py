@@ -1,5 +1,7 @@
 dataset_input_size = {"pre1": 272,
                       "pre2": 290,
+                      "pre3": 362,
+                      "pre4": 380,
                       "pre5": 278,
                       "pre6": 276,
                       "pre7": 274,
