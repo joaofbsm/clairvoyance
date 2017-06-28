@@ -291,6 +291,59 @@ def mastery_scores_team(match, cursor):
     return mastery_scores
 
 
+def champion_masteries_team(match, cursor):
+    get_champion_masteries = ("SELECT mastery "
+                              "FROM SummonerChampMasteries "
+                              "WHERE summId = %s AND championId = %s")
+
+    blue_team = match[:5]
+    red_team = match[5:10]
+    champion_masteries = np.zeros(2, dtype="int")
+    
+    for _, player in blue_team.iterrows():
+        cursor.execute(get_champion_masteries, (player["summonerId"],
+                                                player["championId"]))
+        champion_mastery = list(cursor)[0][0]
+        champion_masteries[0] += champion_mastery
+
+
+    for _, player in red_team.iterrows():
+        cursor.execute(get_champion_masteries, (player["summonerId"],
+                                                player["championId"]))
+        champion_mastery = list(cursor)[0][0]
+        champion_masteries[1] += champion_mastery
+
+    return champion_masteries
+
+
+def champion_masteries_summoner(match, cursor):
+    get_champion_masteries = ("SELECT mastery "
+                              "FROM SummonerChampMasteries "
+                              "WHERE summId = %s AND championId = %s")
+
+    blue_team = match[:5]
+    red_team = match[5:10]
+    blue_champion_masteries = np.zeros(5, dtype="int")
+    red_champion_masteries = np.zeros(5, dtype="int")
+    
+    for i, player in blue_team.iterrows():
+        cursor.execute(get_champion_masteries, (player["summonerId"],
+                                                player["championId"]))
+        champion_mastery = list(cursor)[0][0]
+        blue_champion_masteries[i] = champion_mastery
+
+
+    for i, player in red_team.iterrows():
+        cursor.execute(get_champion_masteries, (player["summonerId"],
+                                                player["championId"]))
+        champion_mastery = list(cursor)[0][0]
+        red_champion_masteries[i] = champion_mastery
+
+    champion_masteries = np.concatenate((blue_champion_masteries, 
+                                         red_champion_masteries))
+
+    return champion_masteries
+
 def build_model_pre7(db, cursor):
     df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
                      " T.winner "
@@ -314,6 +367,53 @@ def build_model_pre7(db, cursor):
     np.savetxt("pre7.csv", dataset, delimiter=",", fmt="%.5g")
 
 
+def build_model_pre8(db, cursor):
+    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
+                     " T.winner "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
+                     "MatchPlayer PL "
+                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
+                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
+                     "AND PL._participant_id = P._id "
+                     "ORDER BY D.matchId, P.teamId ", db)
+
+    dataset = np.zeros((df.shape[0] / 10, 275))
+    for i, match in enumerate(xrange(0, df.shape[0] - 10, 10)):
+        print(i + 1)  # Current processing match
+
+        champions = onehot_champions(df[match:match + 10], db)
+        champion_masteries = champion_masteries_team(df[match:match + 10], 
+                                                     cursor)
+       #champion_masteries_diff = champion_masteries[0] - champion_masteries[1]
+        winner = np.array(df["winner"].iloc[match], dtype="int")[np.newaxis]
+        dataset[i] = np.concatenate((champions, champion_masteries, winner))
+
+    np.savetxt("pre8.csv", dataset, delimiter=",", fmt="%.5g")
+
+
+def build_model_pre9(db, cursor):
+    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
+                     " T.winner "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
+                     "MatchPlayer PL "
+                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
+                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
+                     "AND PL._participant_id = P._id "
+                     "ORDER BY D.matchId, P.teamId ", db)
+
+    dataset = np.zeros((df.shape[0] / 10, 283))
+    for i, match in enumerate(xrange(0, df.shape[0] - 10, 10)):
+        print(i + 1)  # Current processing match
+
+        champions = onehot_champions(df[match:match + 10], db)
+        champion_masteries = champion_masteries_summoner(df[match:match + 10], 
+                                                         cursor)
+        winner = np.array(df["winner"].iloc[match], dtype="int")[np.newaxis]
+        dataset[i] = np.concatenate((champions, champion_masteries, winner))
+
+    np.savetxt("pre9.csv", dataset, delimiter=",", fmt="%.5g")
+
+
 def main(args):
     db = MySQLdb.connect(host="localhost", user="root", passwd="1234", 
                          db="lol")
@@ -329,7 +429,9 @@ def main(args):
                       "pre3": build_model_pre3,
                       "pre5": build_model_pre5,
                       "pre6": build_model_pre6,
-                      "pre7": build_model_pre7}
+                      "pre7": build_model_pre7,
+                      "pre8": build_model_pre8,
+                      "pre9": build_model_pre9}
     model = feature_models[args[0]](db, cursor)
 
     cursor.close()
