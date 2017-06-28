@@ -36,6 +36,7 @@ def auto_retry(api_call_method):
                 raise error
     return call_wrapper
 
+championmasteryapi.get_champion_mastery_score = auto_retry(championmasteryapi.get_champion_mastery_score)
 
 def main():
     db = MySQLdb.connect(host="localhost", user="root", passwd="1234", db="lol")
