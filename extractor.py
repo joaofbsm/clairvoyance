@@ -165,13 +165,19 @@ def mastery_scores_team(match, cursor):
     
     for _, player in blue_team.iterrows():
         cursor.execute(get_mastery_scores, [player["summonerId"]])
-        mastery_score = list(cursor)[0][0]
+        mastery_score = list(cursor)
+        if not mastery_score:
+            return None
+        mastery_score = mastery_score[0][0]
         mastery_scores[0] += mastery_score
 
 
     for _, player in red_team.iterrows():
         cursor.execute(get_mastery_scores, [player["summonerId"]])
-        mastery_score = list(cursor)[0][0]
+        mastery_score = list(cursor)
+        if not mastery_score:
+            return None
+        mastery_score = mastery_score[0][0]
         mastery_scores[1] += mastery_score
 
     return mastery_scores
@@ -656,9 +662,13 @@ def build_model_pre7(db, cursor):
 
         champions = onehot_champions(match, db)
         mastery_scores = mastery_scores_team(match, cursor)
+        if mastery_scores is None:
+            continue
         #mastery_scores_diff = mastery_scores[0] - mastery_scores[1]
         winner = np.array(df["winner"].iloc[player])[np.newaxis]
         dataset[i] = np.concatenate((champions, mastery_scores, winner))
+
+    dataset = remove_incomplete_instances(dataset)
 
     return dataset
 
@@ -812,7 +822,7 @@ def feature_testing(db, cursor):
                      "AND PL._participant_id = P._id "
                      "ORDER BY D.matchId, P.teamId ", db)
 
-    dataset = np.zeros((df.shape[0] / 10, 134))
+    dataset = np.zeros((df.shape[0] / 10, 135))
     bar = tqdm(total=df.shape[0] / 10)
     for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
         bar.update(1)
@@ -824,11 +834,15 @@ def feature_testing(db, cursor):
         dmg_types = dmg_types_team(match, db)
         dmg_percent = dmg_types_percent_team(match, db)
         mastery_scores = mastery_scores_team(match, cursor)
+        if mastery_scores is None:
+            continue
         mastery_scores_diff = mastery_scores[0] - mastery_scores[1]
         mastery_scores_diff = mastery_scores_diff[np.newaxis]
         champion_team_masteries = champion_masteries_team(match, cursor)
         if champion_team_masteries is None:
             continue
+        champion_team_diff = champion_team_masteries[0] - champion_team_masteries[1]
+        champion_team_diff = champion_team_diff[np.newaxis]
         champion_summ_masteries = champion_masteries_summoner(match, cursor)
         if champion_summ_masteries is None:
             continue
@@ -839,7 +853,7 @@ def feature_testing(db, cursor):
 
         winner = np.array(df["winner"].iloc[player])[np.newaxis]
 
-        dataset[i] = np.concatenate((spells, masteries, dmg_types, dmg_percent, mastery_scores, mastery_scores_diff, champion_team_masteries, champion_summ_masteries, winner))
+        dataset[i] = np.concatenate((spells, masteries, dmg_types, dmg_percent, mastery_scores, mastery_scores_diff, champion_team_masteries, champion_team_diff, champion_summ_masteries, winner))
 
     dataset = remove_incomplete_instances(dataset)
 

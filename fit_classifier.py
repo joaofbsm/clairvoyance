@@ -26,7 +26,7 @@ y = dataset[:,input_size]
 
 # split data into train and test sets
 seed = 7
-test_size = 0.33
+test_size = 0.2
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=seed)
 
 # fit model no training data
@@ -42,4 +42,5 @@ accuracy = accuracy_score(y_test, predictions)
 print("Accuracy: %.2f%%" % (accuracy * 100.0))
 
 xgboost.plot_importance(model)
+print(model.feature_importances_)
 pyplot.show()
