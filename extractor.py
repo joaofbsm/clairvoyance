@@ -298,6 +298,181 @@ def team_features_zero_to_ten(match, cursor):
     return zero_to_ten
 
 
+def team_features_zero_to_twenty(match, cursor):
+    get_features = ("SELECT PL.summonerId, PTD._type, PTD.zeroToTen, "
+                    "PTD.tenToTwenty "
+                    "FROM MatchParticipant PA, MatchPlayer PL, "
+                    "MatchParticipantTimeline PT, "
+                    "MatchParticipantTimelineData PTD "
+                    "WHERE PL.summonerId = %s AND PA._match_id = %s "
+                    "AND PL._participant_id = PA._id "
+                    "AND PA._id = PT._participant_id "
+                    "AND PT._id = PTD._timeline_id")
+
+    blue_team = match[:5]
+    red_team = match[5:10]
+    blue_zero_to_twenty = np.zeros(4)
+    red_zero_to_twenty = np.zeros(4)
+
+    for _, player in blue_team.iterrows():
+        cursor.execute(get_features, (player["summonerId"],
+                                      player["matchId"]))
+        player_features = list(cursor)
+        if not player_features:
+            return None
+        for features in player_features:
+            if features[1] == "creepsPerMinDeltas":
+                blue_zero_to_twenty[0] += features[2] + features[3]
+            elif features[1] == "damageTakenPerMinDeltas":
+                blue_zero_to_twenty[1] += features[2] + features[3]
+            elif features[1] == "goldPerMinDeltas":
+                blue_zero_to_twenty[2] += features[2] + features[3]
+            elif features[1] == "xpPerMinDeltas":
+                blue_zero_to_twenty[3] += features[2] + features[3]
+
+    for _, player in red_team.iterrows():
+        cursor.execute(get_features, (player["summonerId"],
+                                      player["matchId"]))
+        player_features = list(cursor)
+        if not player_features:
+            return None
+        for features in player_features:
+            if features[1] == "creepsPerMinDeltas":
+                red_zero_to_twenty[0] += features[2] + features[3]
+            elif features[1] == "damageTakenPerMinDeltas":
+                red_zero_to_twenty[1] += features[2] + features[3]
+            elif features[1] == "goldPerMinDeltas":
+                red_zero_to_twenty[2] += features[2] + features[3]
+            elif features[1] == "xpPerMinDeltas":
+                red_zero_to_twenty[3] += features[2] + features[3]
+
+    zero_to_twenty = np.concatenate((blue_zero_to_twenty, red_zero_to_twenty))
+
+    return zero_to_twenty
+
+
+def team_features_zero_to_thirty(match, cursor):
+    get_features = ("SELECT PL.summonerId, PTD._type, PTD.zeroToTen, "
+                    "PTD.tenToTwenty, PTD.twentyToThirty "
+                    "FROM MatchParticipant PA, MatchPlayer PL, "
+                    "MatchParticipantTimeline PT, "
+                    "MatchParticipantTimelineData PTD "
+                    "WHERE PL.summonerId = %s AND PA._match_id = %s "
+                    "AND PL._participant_id = PA._id "
+                    "AND PA._id = PT._participant_id "
+                    "AND PT._id = PTD._timeline_id")
+
+    blue_team = match[:5]
+    red_team = match[5:10]
+    blue_zero_to_thirty = np.zeros(4)
+    red_zero_to_thirty = np.zeros(4)
+
+    for _, player in blue_team.iterrows():
+        cursor.execute(get_features, (player["summonerId"],
+                                      player["matchId"]))
+        player_features = list(cursor)
+        if not player_features:
+            return None
+        for features in player_features:
+            if features[1] == "creepsPerMinDeltas":
+                blue_zero_to_thirty[0] += (features[2] + features[3]
+                                           + features[4])
+            elif features[1] == "damageTakenPerMinDeltas":
+                blue_zero_to_thirty[1] += (features[2] + features[3]
+                                           + features[4])
+            elif features[1] == "goldPerMinDeltas":
+                blue_zero_to_thirty[2] += (features[2] + features[3]
+                                           + features[4])
+            elif features[1] == "xpPerMinDeltas":
+                blue_zero_to_thirty[3] += (features[2] + features[3]
+                                           + features[4])
+
+    for _, player in red_team.iterrows():
+        cursor.execute(get_features, (player["summonerId"],
+                                      player["matchId"]))
+        player_features = list(cursor)
+        if not player_features:
+            return None
+        for features in player_features:
+            if features[1] == "creepsPerMinDeltas":
+                red_zero_to_thirty[0] += (features[2] + features[3]
+                                          + features[4])
+            elif features[1] == "damageTakenPerMinDeltas":
+                red_zero_to_thirty[1] += (features[2] + features[3]
+                                          + features[4])
+            elif features[1] == "goldPerMinDeltas":
+                red_zero_to_thirty[2] += (features[2] + features[3]
+                                          + features[4])
+            elif features[1] == "xpPerMinDeltas":
+                red_zero_to_thirty[3] += (features[2] + features[3]
+                                          + features[4])
+
+    zero_to_thirty = np.concatenate((blue_zero_to_thirty, red_zero_to_thirty))
+
+    return zero_to_thirty
+
+
+def team_features_zero_to_end(match, cursor):
+    get_features = ("SELECT PL.summonerId, PTD._type, PTD.zeroToTen, "
+                    "PTD.tenToTwenty, PTD.twentyToThirty, PTD.thirtyToEnd "
+                    "FROM MatchParticipant PA, MatchPlayer PL, "
+                    "MatchParticipantTimeline PT, "
+                    "MatchParticipantTimelineData PTD "
+                    "WHERE PL.summonerId = %s AND PA._match_id = %s "
+                    "AND PL._participant_id = PA._id "
+                    "AND PA._id = PT._participant_id "
+                    "AND PT._id = PTD._timeline_id")
+
+    blue_team = match[:5]
+    red_team = match[5:10]
+    blue_zero_to_end = np.zeros(4)
+    red_zero_to_end = np.zeros(4)
+
+    for _, player in blue_team.iterrows():
+        cursor.execute(get_features, (player["summonerId"],
+                                      player["matchId"]))
+        player_features = list(cursor)
+        if not player_features:
+            return None
+        for features in player_features:
+            if features[1] == "creepsPerMinDeltas":
+                blue_zero_to_end[0] += (features[2] + features[3]
+                                        + features[4] + features[5])
+            elif features[1] == "damageTakenPerMinDeltas":
+                blue_zero_to_end[1] += (features[2] + features[3]
+                                        + features[4] + features[5])
+            elif features[1] == "goldPerMinDeltas":
+                blue_zero_to_end[2] += (features[2] + features[3]
+                                        + features[4] + features[5])
+            elif features[1] == "xpPerMinDeltas":
+                blue_zero_to_end[3] += (features[2] + features[3]
+                                        + features[4] + features[5])
+
+    for _, player in red_team.iterrows():
+        cursor.execute(get_features, (player["summonerId"],
+                                      player["matchId"]))
+        player_features = list(cursor)
+        if not player_features:
+            return None
+        for features in player_features:
+            if features[1] == "creepsPerMinDeltas":
+                red_zero_to_end[0] += (features[2] + features[3]
+                                       + features[4] + features[5])
+            elif features[1] == "damageTakenPerMinDeltas":
+                red_zero_to_end[1] += (features[2] + features[3]
+                                       + features[4] + features[5])
+            elif features[1] == "goldPerMinDeltas":
+                red_zero_to_end[2] += (features[2] + features[3]
+                                       + features[4] + features[5])
+            elif features[1] == "xpPerMinDeltas":
+                red_zero_to_end[3] += (features[2] + features[3]
+                                       + features[4] + features[5])
+
+    zero_to_end = np.concatenate((blue_zero_to_end, red_zero_to_end))
+
+    return zero_to_end
+
+
 def remove_incomplete_instances(dataset):
     incomplete_instances = []
     for i, instance in enumerate(dataset):
@@ -643,7 +818,7 @@ def feature_testing(db, cursor):
         bar.update(1)
         match = df[player:player + 10]
 
-        champions = onehot_champions(match, db)
+        #champions = onehot_champions(match, db)
         spells = onehot_spells(match, db)
         masteries = onehot_summoner_masteries_team(match, db, cursor)
         dmg_types = dmg_types_team(match, db)
@@ -651,15 +826,20 @@ def feature_testing(db, cursor):
         mastery_scores = mastery_scores_team(match, cursor)
         mastery_scores_diff = mastery_scores[0] - mastery_scores[1]
         mastery_scores_diff = mastery_scores_diff[np.newaxis]
-
-        zero_to_ten = team_features_zero_to_ten(match, cursor)
-        if zero_to_ten is None:
+        champion_team_masteries = champion_masteries_team(match, cursor)
+        if champion_team_masteries is None:
             continue
-        zero_to_ten_diff = zero_to_ten[:4] - zero_to_ten[4:]
+        champion_summ_masteries = champion_masteries_summoner(match, cursor)
+        if champion_summ_masteries is None:
+            continue
+        #zero_to_end = team_features_zero_to_end(match, cursor)
+        #if zero_to_end is None:
+        #    continue
+        #zero_to_end_diff = zero_to_end[:4] - zero_to_end[4:]
 
         winner = np.array(df["winner"].iloc[player])[np.newaxis]
 
-        dataset[i] = np.concatenate((champions, spells, masteries, dmg_types, dmg_percent, mastery_scores, mastery_scores_diff, zero_to_ten, zero_to_ten_diff, winner))
+        dataset[i] = np.concatenate((spells, masteries, dmg_types, dmg_percent, mastery_scores, mastery_scores_diff, champion_team_masteries, champion_summ_masteries, winner))
 
     dataset = remove_incomplete_instances(dataset)
 
