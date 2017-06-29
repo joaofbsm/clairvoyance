@@ -22,8 +22,8 @@ def onehot_champions(match, db):
     blue_team = match[:5]
     red_team = match[5:10]
 
-    blue_champions = np.zeros(len(champions["pos"]), dtype="int")
-    red_champions = np.zeros(len(champions["pos"]), dtype="int")
+    blue_champions = np.zeros(len(champions["pos"]))
+    red_champions = np.zeros(len(champions["pos"]))
 
     for _, player in blue_team.iterrows():
         blue_champions[champions["pos"][player["championId"]]] = 1
@@ -47,8 +47,8 @@ def onehot_spells(match, db):
     blue_team = match[:5]
     red_team = match[5:10]
 
-    blue_spells = np.zeros(len(spells["pos"]), dtype="int")
-    red_spells = np.zeros(len(spells["pos"]), dtype="int")
+    blue_spells = np.zeros(len(spells["pos"]))
+    red_spells = np.zeros(len(spells["pos"]))
 
     for _, player in blue_team.iterrows():
         blue_spells[spells["pos"][player["spell1Id"]]] += 1
@@ -161,7 +161,7 @@ def mastery_scores_team(match, cursor):
 
     blue_team = match[:5]
     red_team = match[5:10]
-    mastery_scores = np.zeros(2, dtype="int")
+    mastery_scores = np.zeros(2)
     
     for _, player in blue_team.iterrows():
         cursor.execute(get_mastery_scores, [player["summonerId"]])
@@ -184,19 +184,25 @@ def champion_masteries_team(match, cursor):
 
     blue_team = match[:5]
     red_team = match[5:10]
-    champion_masteries = np.zeros(2, dtype="int")
+    champion_masteries = np.zeros(2)
     
     for _, player in blue_team.iterrows():
         cursor.execute(get_champion_masteries, (player["summonerId"],
                                                 player["championId"]))
-        champion_mastery = list(cursor)[0][0]
+        champion_mastery = list(cursor)
+        if not champion_mastery:
+            return None
+        champion_mastery = champion_mastery[0][0]
         champion_masteries[0] += champion_mastery
 
 
     for _, player in red_team.iterrows():
         cursor.execute(get_champion_masteries, (player["summonerId"],
                                                 player["championId"]))
-        champion_mastery = list(cursor)[0][0]
+        champion_mastery = list(cursor)
+        if not champion_mastery:
+            return None
+        champion_mastery = champion_mastery[0][0]
         champion_masteries[1] += champion_mastery
 
     return champion_masteries
@@ -209,26 +215,36 @@ def champion_masteries_summoner(match, cursor):
 
     blue_team = match[:5]
     red_team = match[5:10]
-    blue_champion_masteries = np.zeros(5, dtype="int")
-    red_champion_masteries = np.zeros(5, dtype="int")
+    blue_champion_masteries = np.zeros(5)
+    red_champion_masteries = np.zeros(5)
     
-    for i, player in blue_team.iterrows():
+    i = 0
+    for _, player in blue_team.iterrows():
         cursor.execute(get_champion_masteries, (player["summonerId"],
                                                 player["championId"]))
-        champion_mastery = list(cursor)[0][0]
+        champion_mastery = list(cursor)
+        if not champion_mastery:
+            return None
+        champion_mastery = champion_mastery[0][0]
         blue_champion_masteries[i] = champion_mastery
+        i += 1
 
-
-    for i, player in red_team.iterrows():
+    i = 0
+    for _, player in red_team.iterrows():
         cursor.execute(get_champion_masteries, (player["summonerId"],
                                                 player["championId"]))
-        champion_mastery = list(cursor)[0][0]
+        champion_mastery = list(cursor)
+        if not champion_mastery:
+            return None
+        champion_mastery = champion_mastery[0][0]
         red_champion_masteries[i] = champion_mastery
+        i += 1
 
     champion_masteries = np.concatenate((blue_champion_masteries, 
                                          red_champion_masteries))
 
     return champion_masteries
+
 
 def team_features_zero_to_ten(match, cursor):
     get_features = ("SELECT PL.summonerId, PTD._type, PTD.zeroToTen "
@@ -289,9 +305,8 @@ def remove_incomplete_instances(dataset):
         if not complete:
             incomplete_instances.append(i)
 
-    print("\n\n", len(incomplete_instances), "incomplete instances:\n\n", 
-          incomplete_instances)
     dataset = np.delete(dataset, incomplete_instances, axis=0)
+    print("\n\n", len(incomplete_instances), "incomplete instances removed.")
 
     return dataset
 
@@ -491,9 +506,13 @@ def build_model_pre8(db, cursor):
 
         champions = onehot_champions(match, db)
         champion_masteries = champion_masteries_team(match, cursor)
+        if champion_masteries is None:
+            continue
        #champion_masteries_diff = champion_masteries[0] - champion_masteries[1]
         winner = np.array(df["winner"].iloc[player])[np.newaxis]
         dataset[i] = np.concatenate((champions, champion_masteries, winner))
+
+    dataset = remove_incomplete_instances(dataset)
 
     return dataset
 
@@ -516,8 +535,12 @@ def build_model_pre9(db, cursor):
 
         champions = onehot_champions(match, db)
         champion_masteries = champion_masteries_summoner(match, cursor)
+        if champion_masteries is None:
+            continue
         winner = np.array(df["winner"].iloc[player])[np.newaxis]
         dataset[i] = np.concatenate((champions, champion_masteries, winner))
+
+    dataset = remove_incomplete_instances(dataset)
 
     return dataset
 
@@ -583,23 +606,30 @@ def build_model_pre_in1_all(db, cursor):
 
     return dataset
 
+
 def feature_testing(db, cursor):
     """
     Size of features
     ----------------
 
     onehot_champions: 272
+    onehot_spells: 18
+    onehot_summoner_masteries_team: 90
+    dmg_types_team = 6
+    dmg_types_percent_team = 4
     mastery_scores_team = 2
     mastery_scores_diff = 1
+    champion_masteries_team = 2
+    champion_masteries_summoner = 10
     zero_to_ten = 8
     zero_to_ten_diff = 4
     winner: 1
 
-    TOTAL: 288
+    TOTAL: 418
     """
 
     df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
+                     " P.spell1Id, P.spell2Id, T.winner "
                      "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
                      "MatchPlayer PL "
                      "WHERE P._match_id = D.matchId AND D.mapId = 11 "
@@ -607,14 +637,17 @@ def feature_testing(db, cursor):
                      "AND PL._participant_id = P._id "
                      "ORDER BY D.matchId, P.teamId ", db)
 
-    dataset = np.zeros((df.shape[0] / 10, 16))
+    dataset = np.zeros((df.shape[0] / 10, 134))
     bar = tqdm(total=df.shape[0] / 10)
     for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
         bar.update(1)
         match = df[player:player + 10]
 
-        #champions = onehot_champions(match, db)
-
+        champions = onehot_champions(match, db)
+        spells = onehot_spells(match, db)
+        masteries = onehot_summoner_masteries_team(match, db, cursor)
+        dmg_types = dmg_types_team(match, db)
+        dmg_percent = dmg_types_percent_team(match, db)
         mastery_scores = mastery_scores_team(match, cursor)
         mastery_scores_diff = mastery_scores[0] - mastery_scores[1]
         mastery_scores_diff = mastery_scores_diff[np.newaxis]
@@ -626,7 +659,7 @@ def feature_testing(db, cursor):
 
         winner = np.array(df["winner"].iloc[player])[np.newaxis]
 
-        dataset[i] = np.concatenate((mastery_scores, mastery_scores_diff, zero_to_ten, zero_to_ten_diff, winner))
+        dataset[i] = np.concatenate((champions, spells, masteries, dmg_types, dmg_percent, mastery_scores, mastery_scores_diff, zero_to_ten, zero_to_ten_diff, winner))
 
     dataset = remove_incomplete_instances(dataset)
 

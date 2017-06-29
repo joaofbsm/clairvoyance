@@ -89,11 +89,7 @@ dataset_name = sys.argv[1]
 
 # load data
 dataset = np.loadtxt(dataset_name + ".csv", delimiter=",")
-
-if dataset_name == "feat_test":
-    input_size = int(sys.argv[2]) - 1
-else:
-    input_size = gc.dataset_input_size[dataset_name]
+input_size = dataset.shape[1] - 1
 
 # split data into X and y
 X = dataset[:,0:input_size]
