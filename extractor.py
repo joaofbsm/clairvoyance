@@ -289,7 +289,8 @@ def summoner_wins_and_rate_team(match, cursor):
         blue_total += losses + wins
         blue_wins += wins
 
-    blue_rate = blue_wins / blue_total
+    if blue_total > 0:
+        blue_rate = (blue_wins / blue_total) * 100
 
     for _, player in red_team.iterrows():
         losses = 0
@@ -309,7 +310,8 @@ def summoner_wins_and_rate_team(match, cursor):
         red_total += losses + wins
         red_wins += wins
 
-    red_rate = red_wins / red_total
+    if red_total > 0:
+        red_rate = (red_wins / red_total) * 100
 
     result = np.concatenate((blue_rate, blue_wins, red_rate, red_wins))
     return result
@@ -355,7 +357,8 @@ def champion_wins_and_rate_team(match, cursor):
         blue_total += losses + wins
         blue_wins += wins
 
-    blue_rate = blue_wins / blue_total
+    if blue_total > 0:
+        blue_rate = (blue_wins / blue_total) * 100
 
     for _, player in red_team.iterrows():
         losses = 0
@@ -376,7 +379,8 @@ def champion_wins_and_rate_team(match, cursor):
         red_total += losses + wins
         red_wins += wins
 
-    red_rate = red_wins / red_total
+    if red_total > 0:
+        red_rate = (red_wins / red_total) * 100
 
     result = np.concatenate((blue_rate, blue_wins, red_rate, red_wins))
     return result
@@ -868,9 +872,10 @@ def build_model_pre10(db, cursor):
                      "WHERE P._match_id = D.matchId AND D.mapId = 11 "
                      "AND D.matchId = T._match_id AND P.teamId = T.teamId "
                      "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
+                     "ORDER BY D.matchId, P.teamId "
+                     "LIMIT 10000", db)
 
-    dataset = np.zeros((df.shape[0] / 10, 278))
+    dataset = np.zeros((df.shape[0] / 10, 279))
     bar = tqdm(total=df.shape[0] / 10)
     for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
         bar.update(1)
@@ -878,8 +883,9 @@ def build_model_pre10(db, cursor):
 
         champions = onehot_champions(match, db)
         history = summoner_wins_and_rate_team(match, cursor)
-        history_wins_diff = history[0] - history[2]
-        history_wins_diff = history_wins_diff[np.newaxis]
+        history_wins_diff = np.zeros(2)
+        history_wins_diff[0] = history[0] - history[2]
+        history_wins_diff[1] = history[1] - history[3]
         winner = np.array(df["winner"].iloc[player])[np.newaxis]
         dataset[i] = np.concatenate((champions, history, history_wins_diff, 
                                      winner))
@@ -895,9 +901,10 @@ def build_model_pre11(db, cursor):
                      "WHERE P._match_id = D.matchId AND D.mapId = 11 "
                      "AND D.matchId = T._match_id AND P.teamId = T.teamId "
                      "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
+                     "ORDER BY D.matchId, P.teamId "
+                     "LIMIT 1000", db)
 
-    dataset = np.zeros((df.shape[0] / 10, 278))
+    dataset = np.zeros((df.shape[0] / 10, 279))
     bar = tqdm(total=df.shape[0] / 10)
     for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
         bar.update(1)
@@ -905,8 +912,9 @@ def build_model_pre11(db, cursor):
 
         champions = onehot_champions(match, db)
         history = champion_wins_and_rate_team(match, cursor)
-        history_wins_diff = history[0] - history[2]
-        history_wins_diff = history_wins_diff[np.newaxis]
+        history_wins_diff = np.zeros(2)
+        history_wins_diff[0] = history[0] - history[2]
+        history_wins_diff[1] = history[1] - history[3]
         winner = np.array(df["winner"].iloc[player])[np.newaxis]
         dataset[i] = np.concatenate((champions, history, history_wins_diff, 
                                      winner))
