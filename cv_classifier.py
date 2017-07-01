@@ -23,8 +23,8 @@ X = dataset[:,0:input_size]
 y = dataset[:,input_size]
 
 # fit model no training data
-model = xgboost.XGBClassifier(n_estimators=100, learning_rate=0.1, max_depth=2)
-#model = RandomForestClassifier(n_estimators=100)
+#model = xgboost.XGBClassifier(n_estimators=100, learning_rate=0.1, max_depth=2)
+model = RandomForestClassifier(n_estimators=100, max_depth=2)
 
 kfold = KFold(n_splits=5, random_state=7)
 results = cross_val_score(model, X, y, cv=kfold)

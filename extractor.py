@@ -252,6 +252,136 @@ def champion_masteries_summoner(match, cursor):
     return champion_masteries
 
 
+def summoner_wins_and_rate_team(match, cursor):
+    get_outcomes = ("SELECT T.winner, count(*) "
+                    "FROM MatchParticipant P, MatchPlayer PL, MatchTeam T "
+                    "WHERE PL.summonerId = %s AND P._match_id <> %s "
+                    "AND P._id = PL._participant_id AND P._match_id = T._match_id "
+                    "AND P.teamId = T.teamId "
+                    "GROUP BY T.winner "
+                    "ORDER BY T.winner")
+
+    blue_team = match[:5]
+    red_team = match[5:10]
+
+    blue_total = np.zeros(1)
+    red_total = np.zeros(1)
+    blue_wins = np.zeros(1)
+    red_wins = np.zeros(1)
+    blue_rate = np.zeros(1)
+    red_rate = np.zeros(1)
+
+    for _, player in blue_team.iterrows():
+        losses = 0
+        wins = 0
+        cursor.execute(get_outcomes, (player["summonerId"], player["matchId"]))
+        outcomes = list(cursor)
+        if not outcomes:
+            continue
+        elif len(outcomes) == 2:
+            losses = outcomes[0][1]
+            wins = outcomes[1][1]
+        else:
+            if outcomes[0][0] == 0:
+                losses = outcomes[0][1]
+            else:
+                wins = outcomes[0][1]
+        blue_total += losses + wins
+        blue_wins += wins
+
+    blue_rate = blue_wins / blue_total
+
+    for _, player in red_team.iterrows():
+        losses = 0
+        wins = 0
+        cursor.execute(get_outcomes, (player["summonerId"], player["matchId"]))
+        outcomes = list(cursor)
+        if not outcomes:
+            continue
+        elif len(outcomes) == 2:
+            losses = outcomes[0][1]
+            wins = outcomes[1][1]
+        else:
+            if outcomes[0][0] == 0:
+                losses = outcomes[0][1]
+            else:
+                wins = outcomes[0][1]
+        red_total += losses + wins
+        red_wins += wins
+
+    red_rate = red_wins / red_total
+
+    result = np.concatenate((blue_rate, blue_wins, red_rate, red_wins))
+    return result
+    
+
+def champion_wins_and_rate_team(match, cursor):
+    get_outcomes = ("SELECT T.winner, count(*) "
+                    "FROM MatchParticipant P, MatchPlayer PL, MatchTeam T "
+                    "WHERE PL.summonerId = %s AND P._match_id <> %s "
+                    "AND P.championId = %s "
+                    "AND P._id = PL._participant_id AND P._match_id = T._match_id "
+                    "AND P.teamId = T.teamId "
+                    "GROUP BY T.winner "
+                    "ORDER BY T.winner")
+
+    blue_team = match[:5]
+    red_team = match[5:10]
+
+    blue_total = np.zeros(1)
+    red_total = np.zeros(1)
+    blue_wins = np.zeros(1)
+    red_wins = np.zeros(1)
+    blue_rate = np.zeros(1)
+    red_rate = np.zeros(1)
+
+
+    for _, player in blue_team.iterrows():
+        losses = 0
+        wins = 0
+        cursor.execute(get_outcomes, (player["summonerId"], player["matchId"], 
+                                      player["championId"]))
+        outcomes = list(cursor)
+        if not outcomes:
+            continue
+        elif len(outcomes) == 2:
+            losses = outcomes[0][1]
+            wins = outcomes[1][1]
+        else:
+            if outcomes[0][0] == 0:
+                losses = outcomes[0][1]
+            else:
+                wins = outcomes[0][1]
+        blue_total += losses + wins
+        blue_wins += wins
+
+    blue_rate = blue_wins / blue_total
+
+    for _, player in red_team.iterrows():
+        losses = 0
+        wins = 0
+        cursor.execute(get_outcomes, (player["summonerId"], player["matchId"], 
+                                      player["championId"]))
+        outcomes = list(cursor)
+        if not outcomes:
+            continue
+        elif len(outcomes) == 2:
+            losses = outcomes[0][1]
+            wins = outcomes[1][1]
+        else:
+            if outcomes[0][0] == 0:
+                losses = outcomes[0][1]
+            else:
+                wins = outcomes[0][1]
+        red_total += losses + wins
+        red_wins += wins
+
+    red_rate = red_wins / red_total
+
+    result = np.concatenate((blue_rate, blue_wins, red_rate, red_wins))
+    return result
+
+
 def team_features_zero_to_ten(match, cursor):
     get_features = ("SELECT PL.summonerId, PTD._type, PTD.zeroToTen "
                     "FROM MatchParticipant PA, MatchPlayer PL, "
@@ -730,6 +860,60 @@ def build_model_pre9(db, cursor):
     return dataset
 
 
+def build_model_pre10(db, cursor):
+    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
+                     " T.winner "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
+                     "MatchPlayer PL "
+                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
+                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
+                     "AND PL._participant_id = P._id "
+                     "ORDER BY D.matchId, P.teamId ", db)
+
+    dataset = np.zeros((df.shape[0] / 10, 278))
+    bar = tqdm(total=df.shape[0] / 10)
+    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
+        bar.update(1)
+        match = df[player:player + 10]
+
+        champions = onehot_champions(match, db)
+        history = summoner_wins_and_rate_team(match, cursor)
+        history_wins_diff = history[0] - history[2]
+        history_wins_diff = history_wins_diff[np.newaxis]
+        winner = np.array(df["winner"].iloc[player])[np.newaxis]
+        dataset[i] = np.concatenate((champions, history, history_wins_diff, 
+                                     winner))
+
+    return dataset
+
+
+def build_model_pre11(db, cursor):
+    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
+                     " T.winner "
+                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
+                     "MatchPlayer PL "
+                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
+                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
+                     "AND PL._participant_id = P._id "
+                     "ORDER BY D.matchId, P.teamId ", db)
+
+    dataset = np.zeros((df.shape[0] / 10, 278))
+    bar = tqdm(total=df.shape[0] / 10)
+    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
+        bar.update(1)
+        match = df[player:player + 10]
+
+        champions = onehot_champions(match, db)
+        history = champion_wins_and_rate_team(match, cursor)
+        history_wins_diff = history[0] - history[2]
+        history_wins_diff = history_wins_diff[np.newaxis]
+        winner = np.array(df["winner"].iloc[player])[np.newaxis]
+        dataset[i] = np.concatenate((champions, history, history_wins_diff, 
+                                     winner))
+
+    return dataset
+
+
 def build_model_pre_in1(db, cursor):
     df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
                      " T.winner "
@@ -882,6 +1066,8 @@ def main(args):
                       "pre7": build_model_pre7,
                       "pre8": build_model_pre8,
                       "pre9": build_model_pre9,
+                      "pre10": build_model_pre10,
+                      "pre11": build_model_pre11,
                       "prein1": build_model_pre_in1,
                       "prein1all": build_model_pre_in1_all,
                       "feat_test": feature_testing}
