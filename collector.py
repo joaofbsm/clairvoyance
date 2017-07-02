@@ -48,7 +48,7 @@ riotapi.get_summoner_by_name = auto_retry(riotapi.get_summoner_by_name)
 
 def main():
     # Setup riotapi
-    riotapi.set_region("EUW")
+    riotapi.set_region("KR")
     riotapi.print_calls(True)
     key = os.environ["DEV_KEY1"]  # You can create an env var called "DEV_KEY" that holds your developer key. It will be loaded here.
     riotapi.set_api_key(key)

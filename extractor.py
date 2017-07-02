@@ -902,7 +902,7 @@ def build_model_pre11(db, cursor):
                      "AND D.matchId = T._match_id AND P.teamId = T.teamId "
                      "AND PL._participant_id = P._id "
                      "ORDER BY D.matchId, P.teamId "
-                     "LIMIT 1000", db)
+                     "LIMIT 50000", db)
 
     dataset = np.zeros((df.shape[0] / 10, 279))
     bar = tqdm(total=df.shape[0] / 10)
@@ -998,8 +998,10 @@ def feature_testing(db, cursor):
     mastery_scores_diff = 1
     champion_masteries_team = 2
     champion_masteries_summoner = 10
-    zero_to_ten = 8
-    zero_to_ten_diff = 4
+    summoner_wins_and_rate_team = 4
+    champion_wins_and_rate_team = 4
+    zero_to_ten -> end = 8
+    zero_to_ten -> end_diff = 4
     winner: 1
 
     TOTAL: 418
@@ -1014,13 +1016,13 @@ def feature_testing(db, cursor):
                      "AND PL._participant_id = P._id "
                      "ORDER BY D.matchId, P.teamId ", db)
 
-    dataset = np.zeros((df.shape[0] / 10, 135))
+    dataset = np.zeros((df.shape[0] / 10, 407))
     bar = tqdm(total=df.shape[0] / 10)
     for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
         bar.update(1)
         match = df[player:player + 10]
 
-        #champions = onehot_champions(match, db)
+        champions = onehot_champions(match, db)
         spells = onehot_spells(match, db)
         masteries = onehot_summoner_masteries_team(match, db, cursor)
         dmg_types = dmg_types_team(match, db)
@@ -1045,7 +1047,7 @@ def feature_testing(db, cursor):
 
         winner = np.array(df["winner"].iloc[player])[np.newaxis]
 
-        dataset[i] = np.concatenate((spells, masteries, dmg_types, dmg_percent, mastery_scores, mastery_scores_diff, champion_team_masteries, champion_team_diff, champion_summ_masteries, winner))
+        dataset[i] = np.concatenate((champions, spells, masteries, dmg_types, dmg_percent, mastery_scores, mastery_scores_diff, champion_team_masteries, champion_team_diff, champion_summ_masteries, winner))
 
     dataset = remove_incomplete_instances(dataset)
 
@@ -1080,7 +1082,9 @@ def main(args):
                       "prein1all": build_model_pre_in1_all,
                       "feat_test": feature_testing}
     model = feature_models[model_name](db, cursor)
-    np.savetxt(model_name + ".csv", model, delimiter=",", fmt="%.5g")
+    if model_name == "feat_test":
+        model_name = args[1]
+        np.savetxt(model_name + ".csv", model, delimiter=",", fmt="%.5g")
 
     cursor.close()
     db.close()
