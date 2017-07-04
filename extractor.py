@@ -1014,32 +1014,41 @@ def feature_testing(db, cursor):
                      "WHERE P._match_id = D.matchId AND D.mapId = 11 "
                      "AND D.matchId = T._match_id AND P.teamId = T.teamId "
                      "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
+                     "ORDER BY D.matchId, P.teamId "
+                     "LIMIT 10000", db)
 
-    dataset = np.zeros((df.shape[0] / 10, 407))
+    dataset = np.zeros((df.shape[0] / 10, 7))
     bar = tqdm(total=df.shape[0] / 10)
     for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
         bar.update(1)
         match = df[player:player + 10]
 
-        champions = onehot_champions(match, db)
-        spells = onehot_spells(match, db)
-        masteries = onehot_summoner_masteries_team(match, db, cursor)
-        dmg_types = dmg_types_team(match, db)
-        dmg_percent = dmg_types_percent_team(match, db)
-        mastery_scores = mastery_scores_team(match, cursor)
-        if mastery_scores is None:
-            continue
-        mastery_scores_diff = mastery_scores[0] - mastery_scores[1]
-        mastery_scores_diff = mastery_scores_diff[np.newaxis]
-        champion_team_masteries = champion_masteries_team(match, cursor)
-        if champion_team_masteries is None:
-            continue
-        champion_team_diff = champion_team_masteries[0] - champion_team_masteries[1]
-        champion_team_diff = champion_team_diff[np.newaxis]
-        champion_summ_masteries = champion_masteries_summoner(match, cursor)
-        if champion_summ_masteries is None:
-            continue
+        #champions = onehot_champions(match, db)
+        #spells = onehot_spells(match, db)
+        #masteries = onehot_summoner_masteries_team(match, db, cursor)
+        #dmg_types = dmg_types_team(match, db)
+        #dmg_percent = dmg_types_percent_team(match, db)
+        #mastery_scores = mastery_scores_team(match, cursor)
+        #if mastery_scores is None:
+        #    continue
+        #mastery_scores_diff = mastery_scores[0] - mastery_scores[1]
+        #mastery_scores_diff = mastery_scores_diff[np.newaxis]
+        #champion_team_masteries = champion_masteries_team(match, cursor)
+        #if champion_team_masteries is None:
+        #    continue
+        #champion_team_diff = champion_team_masteries[0] - champion_team_masteries[1]
+        #champion_team_diff = champion_team_diff[np.newaxis]
+        #champion_summ_masteries = champion_masteries_summoner(match, cursor)
+        #if champion_summ_masteries is None:
+        #    continue
+        history = summoner_wins_and_rate_team(match, cursor)
+        history_wins_diff = np.zeros(2)
+        history_wins_diff[0] = history[0] - history[2]
+        history_wins_diff[1] = history[1] - history[3]
+        #history = champion_wins_and_rate_team(match, cursor)
+        #history_wins_diff = np.zeros(2)
+        #history_wins_diff[0] = history[0] - history[2]
+        #history_wins_diff[1] = history[1] - history[3]
         #zero_to_end = team_features_zero_to_end(match, cursor)
         #if zero_to_end is None:
         #    continue
@@ -1047,8 +1056,8 @@ def feature_testing(db, cursor):
 
         winner = np.array(df["winner"].iloc[player])[np.newaxis]
 
-        dataset[i] = np.concatenate((champions, spells, masteries, dmg_types, dmg_percent, mastery_scores, mastery_scores_diff, champion_team_masteries, champion_team_diff, champion_summ_masteries, winner))
-
+        #dataset[i] = np.concatenate((champions, spells, masteries, dmg_types, dmg_percent, mastery_scores, mastery_scores_diff, champion_team_masteries, champion_team_diff, champion_summ_masteries, winner))
+        dataset[i] = np.concatenate((history, history_wins_diff, winner))
     dataset = remove_incomplete_instances(dataset)
 
     return dataset
@@ -1080,11 +1089,11 @@ def main(args):
                       "pre11": build_model_pre11,
                       "prein1": build_model_pre_in1,
                       "prein1all": build_model_pre_in1_all,
-                      "feat_test": feature_testing}
+                      "ft": feature_testing}
     model = feature_models[model_name](db, cursor)
-    if model_name == "feat_test":
+    if model_name == "ft":
         model_name = args[1]
-        np.savetxt(model_name + ".csv", model, delimiter=",", fmt="%.5g")
+    np.savetxt(model_name + ".csv", model, delimiter=",", fmt="%.5g")
 
     cursor.close()
     db.close()

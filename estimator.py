@@ -68,13 +68,13 @@ def main():
     }
 
     params1 = { 
-        'AdaBoostClassifier':  {'n_estimators': [50, 100, 200],
-                                'learning_rate': [0.01, 0.1, 1]},
-        'XGBoost': {'n_estimators': [50, 100, 200],
-                    'learning_rate': [0.01, 0.1, 1],
-                    'max_depth': [4, 6, 8, 10]},
-        'RandomForestClassifier': {'n_estimators': [50, 100, 200],
-                                   'max_depth': [4, 6, 8, 10]}
+        'AdaBoostClassifier':  {'n_estimators': [50, 100, 200, 300],
+                                'learning_rate': [0.001, 0.01, 0.1, 1]},
+        'XGBoost': {'n_estimators': [50, 100, 200, 300],
+                    'learning_rate': [0.001, 0.01, 0.1, 1],
+                    'max_depth': [2, 4, 6, 8, 10]},
+        'RandomForestClassifier': {'n_estimators': [50, 100, 200, 300],
+                                   'max_depth': [2, 4, 6, 8, 10]}
     }
 
     helper1 = EstimatorSelectionHelper(models1, params1)
