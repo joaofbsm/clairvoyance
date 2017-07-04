@@ -268,7 +268,7 @@ def summoner_wins_and_rate_team(match, cursor):
     red_rate = np.zeros(1)
 
     for _, player in blue_team.iterrows():
-        cursor.execute(get_history, (player["summonerId"]))
+        cursor.execute(get_history, [player["summonerId"]])
         outcomes = list(cursor)[0]
         if not outcomes:
             continue
@@ -279,10 +279,10 @@ def summoner_wins_and_rate_team(match, cursor):
 
     # Harmonic mean
     if blue_total > 0:
-        blue_rate = (blue_wins / blue_total) * 100
+        blue_rate = (blue_wins / (blue_total * 1.0)) * 100
 
     for _, player in red_team.iterrows():
-        cursor.execute(get_history, (player["summonerId"]))
+        cursor.execute(get_history, [player["summonerId"]])
         outcomes = list(cursor)[0]
         if not outcomes:
             continue
@@ -292,7 +292,7 @@ def summoner_wins_and_rate_team(match, cursor):
         red_wins += wins
 
     if red_total > 0:
-        red_rate = (red_wins / red_total) * 100
+        red_rate = (red_wins / (red_total * 1.0)) * 100
 
     result = np.concatenate((blue_rate, blue_wins, red_rate, red_wins))
     return result
@@ -325,7 +325,7 @@ def champion_wins_and_rate_team(match, cursor):
         blue_wins += wins
 
     if blue_total > 0:
-        blue_rate = (blue_wins / blue_total) * 100
+        blue_rate = (blue_wins / (blue_total * 1.0)) * 100
 
     for _, player in red_team.iterrows():
         cursor.execute(get_outcomes, (player["summonerId"], player["championId"]))
@@ -338,7 +338,7 @@ def champion_wins_and_rate_team(match, cursor):
         red_wins += wins
 
     if red_total > 0:
-        red_rate = (red_wins / red_total) * 100
+        red_rate = (red_wins / (red_total * 1.0)) * 100
 
     result = np.concatenate((blue_rate, blue_wins, red_rate, red_wins))
     return result
@@ -972,8 +972,7 @@ def feature_testing(db, cursor):
                      "WHERE P._match_id = D.matchId AND D.mapId = 11 "
                      "AND D.matchId = T._match_id AND P.teamId = T.teamId "
                      "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId "
-                     "LIMIT 10000", db)
+                     "ORDER BY D.matchId, P.teamId", db)
 
     dataset = np.zeros((df.shape[0] / 10, 7))
     bar = tqdm(total=df.shape[0] / 10)
