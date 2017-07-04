@@ -15,29 +15,30 @@ def main():
     cursor.execute('SET CHARACTER SET utf8;')
     cursor.execute('SET character_set_connection=utf8;')
 
-    cursor.execute("SELECT id FROM Summoner")
-    summoners = list(cursor)
-
     get_outcomes = ("SELECT T.winner, count(*) "
                     "FROM MatchParticipant P, MatchPlayer PL, MatchTeam T "
                     "WHERE PL.summonerId = %s "
+                    "AND P.championId = %s "
                     "AND P._id = PL._participant_id AND P._match_id = T._match_id "
                     "AND P.teamId = T.teamId "
                     "GROUP BY T.winner "
                     "ORDER BY T.winner")
 
     insert_outcomes = ("INSERT INTO "
-                       "SummonerHistory (summId, wins, losses, rate) "
-                       "VALUES (%s, %s, %s, %s)")
+                       "SummonerChampHistory (summId, championId, wins, losses, rate) "
+                       "VALUES (%s, %s, %s, %s, %s)")
 
-    bar = tqdm(total=len(summoners))
-    for (summoner,) in summoners:
-        cursor.execute("SELECT EXISTS (SELECT * FROM SummonerHistory WHERE summId = %s)", [summoner])
+    cursor.execute("SELECT summonerId, championId FROM MatchParticipant PA, MatchPlayer PL WHERE PL._participant_id = PA._id")
+    result = list(cursor)
+
+    bar = tqdm(total=len(result))
+    for summoner, champion in result:
+        cursor.execute("SELECT EXISTS (SELECT * FROM SummonerChampHistory WHERE summId = %s AND championId = %s)", (summoner, champion))
         is_present = list(cursor)[0][0]
         if not is_present:
             wins = 0
             losses = 0
-            cursor.execute(get_outcomes, [summoner])
+            cursor.execute(get_outcomes, (summoner, champion))
             outcomes = list(cursor)
             if not outcomes:
                 bar.update(1)
@@ -53,8 +54,8 @@ def main():
             total = wins + losses
             rate = (wins / total) * 100
 
-            cursor.execute(insert_outcomes, (summoner, wins, losses, rate))
-
+            cursor.execute(insert_outcomes, (summoner, champion, wins, losses, rate))
+            
         bar.update(1)
 
     cursor.close()
