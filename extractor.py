@@ -253,13 +253,9 @@ def champion_masteries_summoner(match, cursor):
 
 
 def summoner_wins_and_rate_team(match, cursor):
-    get_outcomes = ("SELECT T.winner, count(*) "
-                    "FROM MatchParticipant P, MatchPlayer PL, MatchTeam T "
-                    "WHERE PL.summonerId = %s AND P._match_id <> %s "
-                    "AND P._id = PL._participant_id AND P._match_id = T._match_id "
-                    "AND P.teamId = T.teamId "
-                    "GROUP BY T.winner "
-                    "ORDER BY T.winner")
+    get_history = ("SELECT wins, losses "
+                    "FROM SummonerHistory "
+                    "WHERE summId = %s AND championId = %s")
 
     blue_team = match[:5]
     red_team = match[5:10]
@@ -272,42 +268,27 @@ def summoner_wins_and_rate_team(match, cursor):
     red_rate = np.zeros(1)
 
     for _, player in blue_team.iterrows():
-        losses = 0
-        wins = 0
-        cursor.execute(get_outcomes, (player["summonerId"], player["matchId"]))
-        outcomes = list(cursor)
+        cursor.execute(get_history, (player["summonerId"], player["matchId"]))
+        outcomes = list(cursor)[0]
         if not outcomes:
             continue
-        elif len(outcomes) == 2:
-            losses = outcomes[0][1]
-            wins = outcomes[1][1]
-        else:
-            if outcomes[0][0] == 0:
-                losses = outcomes[0][1]
-            else:
-                wins = outcomes[0][1]
-        blue_total += losses + wins
+        wins = outcomes[0]
+        losses = outcomes[1]
+        blue_total += wins + losses
         blue_wins += wins
 
+    # Harmonic mean
     if blue_total > 0:
         blue_rate = (blue_wins / blue_total) * 100
 
     for _, player in red_team.iterrows():
-        losses = 0
-        wins = 0
-        cursor.execute(get_outcomes, (player["summonerId"], player["matchId"]))
-        outcomes = list(cursor)
+        cursor.execute(get_history, (player["summonerId"], player["matchId"]))
+        outcomes = list(cursor)[0]
         if not outcomes:
             continue
-        elif len(outcomes) == 2:
-            losses = outcomes[0][1]
-            wins = outcomes[1][1]
-        else:
-            if outcomes[0][0] == 0:
-                losses = outcomes[0][1]
-            else:
-                wins = outcomes[0][1]
-        red_total += losses + wins
+        wins = outcomes[0]
+        losses = outcomes[1]
+        red_total += wins + losses
         red_wins += wins
 
     if red_total > 0:
