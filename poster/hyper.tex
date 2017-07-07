@@ -1,0 +1,24 @@
+\documentclass[  
+convert={
+    size=4000x2000,
+    outext=.png
+  },
+]{standalone}
+
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{colortbl} 
+\usepackage{xcolor}
+\begin{document}
+
+\begin{tabular}{lccc} % suppress vertical whitespace at start and end
+\toprule
+Dataset & AdaBoost & XGBoost & Random Forests\\
+\midrule
+\rowcolor{black!20} Exceto histórico(pré-ajuste) & 59.44\% & \textbf{59.77}\% & 54.58\%\\
+Exceto histórico(ajuste) & 60.62\% & 61.42\% & \textbf{64.80}\%\\
+\rowcolor{black!20} Todos os atributos(pré-ajuste) & 89.08\% & \textbf{89.29\%} & 87.68\%\\
+Todos os atributos(ajuste) & 89.41\% & \textbf{89.5\%} & 89.1\% \\
+\midrule[\heavyrulewidth]
+\end{tabular}
+\end{document}

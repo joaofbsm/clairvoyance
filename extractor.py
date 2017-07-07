@@ -315,8 +315,8 @@ def champion_wins_and_rate_team(match, cursor):
 
 
     for _, player in blue_team.iterrows():
-        cursor.execute(get_outcomes, (player["summonerId"], player["championId"]))
-        outcomes = list(cursor)
+        cursor.execute(get_history, (player["summonerId"], player["championId"]))
+        outcomes = list(cursor)[0]
         if not outcomes:
             continue
         wins = outcomes[0]
@@ -328,8 +328,8 @@ def champion_wins_and_rate_team(match, cursor):
         blue_rate = (blue_wins / (blue_total * 1.0)) * 100
 
     for _, player in red_team.iterrows():
-        cursor.execute(get_outcomes, (player["summonerId"], player["championId"]))
-        outcomes = list(cursor)
+        cursor.execute(get_history, (player["summonerId"], player["championId"]))
+        outcomes = list(cursor)[0]
         if not outcomes:
             continue
         wins = outcomes[0]
@@ -585,363 +585,6 @@ def remove_incomplete_instances(dataset):
 
 #===================================MODELS====================================#
 
-def build_model_pre1(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 273))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-
-        dataset[i] = np.concatenate((champions, winner))
-
-    return dataset   
-
-
-def build_model_pre2(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " P.spell1Id, P.spell2Id, T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 291))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        spells = onehot_spells(match, db)
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-
-        dataset[i] = np.concatenate((champions, spells, winner))
-
-    return dataset 
-
-
-def build_model_pre3(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 363))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        team_masteries = onehot_summoner_masteries_team(match, db, cursor)
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-
-        dataset[i] = np.concatenate((champions, team_masteries, winner))
-
-    return dataset 
-
-
-def build_model_pre4(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " P.spell1Id, P.spell2Id, T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 381))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        spells = spells = onehot_spells(match, db)
-        team_masteries = onehot_summoner_masteries_team(match, db, cursor)
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-
-        dataset[i] = np.concatenate((champions, spells, team_masteries, 
-                                     winner))
-
-    return dataset 
-
-
-def build_model_pre5(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 279))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        dmg_types = dmg_types_team(match, db)
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-
-        dataset[i] = np.concatenate((champions, dmg_types, winner))
-
-    return dataset   
-
-
-def build_model_pre6(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 277))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        dmg_types_percent = dmg_types_percent_team(match, db)
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-
-        dataset[i] = np.concatenate((champions, dmg_types_percent, winner))
-
-    return dataset   
-
-
-def build_model_pre7(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 275))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        mastery_scores = mastery_scores_team(match, cursor)
-        if mastery_scores is None:
-            continue
-        #mastery_scores_diff = mastery_scores[0] - mastery_scores[1]
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-        dataset[i] = np.concatenate((champions, mastery_scores, winner))
-
-    dataset = remove_incomplete_instances(dataset)
-
-    return dataset
-
-
-def build_model_pre8(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 275))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        champion_masteries = champion_masteries_team(match, cursor)
-        if champion_masteries is None:
-            continue
-       #champion_masteries_diff = champion_masteries[0] - champion_masteries[1]
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-        dataset[i] = np.concatenate((champions, champion_masteries, winner))
-
-    dataset = remove_incomplete_instances(dataset)
-
-    return dataset
-
-
-def build_model_pre9(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 283))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        champion_masteries = champion_masteries_summoner(match, cursor)
-        if champion_masteries is None:
-            continue
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-        dataset[i] = np.concatenate((champions, champion_masteries, winner))
-
-    dataset = remove_incomplete_instances(dataset)
-
-    return dataset
-
-
-def build_model_pre10(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId "
-                     "LIMIT 10000", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 279))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        history = summoner_wins_and_rate_team(match, cursor)
-        history_wins_diff = np.zeros(2)
-        history_wins_diff[0] = history[0] - history[2]
-        history_wins_diff[1] = history[1] - history[3]
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-        dataset[i] = np.concatenate((champions, history, history_wins_diff, 
-                                     winner))
-
-    return dataset
-
-
-def build_model_pre11(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId "
-                     "LIMIT 50000", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 279))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        history = champion_wins_and_rate_team(match, cursor)
-        history_wins_diff = np.zeros(2)
-        history_wins_diff[0] = history[0] - history[2]
-        history_wins_diff[1] = history[1] - history[3]
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-        dataset[i] = np.concatenate((champions, history, history_wins_diff, 
-                                     winner))
-
-    return dataset
-
-
-def build_model_pre_in1(db, cursor):
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 281))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        zero_to_ten = team_features_zero_to_ten(match, cursor)
-        if zero_to_ten is None:
-            continue
-        #zero_to_ten_diff = zero_to_ten[:4] - zero_to_ten[4:]
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-        dataset[i] = np.concatenate((champions, zero_to_ten, winner))
-
-    dataset = remove_incomplete_instances(dataset)
-
-    return dataset
-
-
-def build_model_pre_in1_all(db, cursor):
-    """In attributes + diff."""
-
-
-    df = pd.read_sql("SELECT D.matchId, PL.summonerId, P.championId, P.teamId,"
-                     " T.winner "
-                     "FROM MatchParticipant P, MatchDetail D, MatchTeam T, "
-                     "MatchPlayer PL "
-                     "WHERE P._match_id = D.matchId AND D.mapId = 11 "
-                     "AND D.matchId = T._match_id AND P.teamId = T.teamId "
-                     "AND PL._participant_id = P._id "
-                     "ORDER BY D.matchId, P.teamId ", db)
-
-    dataset = np.zeros((df.shape[0] / 10, 285))
-    bar = tqdm(total=df.shape[0] / 10)
-    for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
-        bar.update(1)
-        match = df[player:player + 10]
-
-        champions = onehot_champions(match, db)
-        zero_to_ten = team_features_zero_to_ten(match, cursor)
-        if zero_to_ten is None:
-            continue
-        zero_to_ten_diff = zero_to_ten[:4] - zero_to_ten[4:]
-        winner = np.array(df["winner"].iloc[player])[np.newaxis]
-        dataset[i] = np.concatenate((champions, zero_to_ten, zero_to_ten_diff,
-                                     winner))
-
-    dataset = remove_incomplete_instances(dataset)
-
-    return dataset
-
-
 def feature_testing(db, cursor):
     """
     Size of features
@@ -974,47 +617,53 @@ def feature_testing(db, cursor):
                      "AND PL._participant_id = P._id "
                      "ORDER BY D.matchId, P.teamId", db)
 
-    dataset = np.zeros((df.shape[0] / 10, 7))
+    dataset = np.zeros((df.shape[0] / 10, 407))
     bar = tqdm(total=df.shape[0] / 10)
     for i, player in enumerate(xrange(0, df.shape[0] - 10, 10)):
         bar.update(1)
         match = df[player:player + 10]
 
-        #champions = onehot_champions(match, db)
-        #spells = onehot_spells(match, db)
-        #masteries = onehot_summoner_masteries_team(match, db, cursor)
-        #dmg_types = dmg_types_team(match, db)
-        #dmg_percent = dmg_types_percent_team(match, db)
-        #mastery_scores = mastery_scores_team(match, cursor)
-        #if mastery_scores is None:
+        #=================================PRE=================================#
+        champions = onehot_champions(match, db)
+        spells = onehot_spells(match, db)
+        masteries = onehot_summoner_masteries_team(match, db, cursor)
+        dmg_types = dmg_types_team(match, db)
+        dmg_percent = dmg_types_percent_team(match, db)
+        mastery_scores = mastery_scores_team(match, cursor)
+        if mastery_scores is None:
+            continue
+        mastery_scores_diff = mastery_scores[0] - mastery_scores[1]
+        mastery_scores_diff = mastery_scores_diff[np.newaxis]
+        champion_team_masteries = champion_masteries_team(match, cursor)
+        if champion_team_masteries is None:
+            continue
+        champion_team_diff = champion_team_masteries[0] - champion_team_masteries[1]
+        champion_team_diff = champion_team_diff[np.newaxis]
+        champion_summ_masteries = champion_masteries_summoner(match, cursor)
+        if champion_summ_masteries is None:
+            continue
+        #historysumm = summoner_wins_and_rate_team(match, cursor)
+        #historysumm_wins_diff = np.zeros(2)
+        #historysumm_wins_diff[0] = historysumm[0] - historysumm[2]
+        #historysumm_wins_diff[1] = historysumm[1] - historysumm[3]
+        #historychamp = champion_wins_and_rate_team(match, cursor)
+        #historychamp_wins_diff = np.zeros(2)
+        #historychamp_wins_diff[0] = historychamp[0] - historychamp[2]
+        #historychamp_wins_diff[1] = historychamp[1] - historychamp[3]
+
+        #=================================IN==================================#  
+        #zero_to_ = team_features_zero_to_thirty(match, cursor)
+        #if zero_to_ is None:
         #    continue
-        #mastery_scores_diff = mastery_scores[0] - mastery_scores[1]
-        #mastery_scores_diff = mastery_scores_diff[np.newaxis]
-        #champion_team_masteries = champion_masteries_team(match, cursor)
-        #if champion_team_masteries is None:
-        #    continue
-        #champion_team_diff = champion_team_masteries[0] - champion_team_masteries[1]
-        #champion_team_diff = champion_team_diff[np.newaxis]
-        #champion_summ_masteries = champion_masteries_summoner(match, cursor)
-        #if champion_summ_masteries is None:
-        #    continue
-        history = summoner_wins_and_rate_team(match, cursor)
-        history_wins_diff = np.zeros(2)
-        history_wins_diff[0] = history[0] - history[2]
-        history_wins_diff[1] = history[1] - history[3]
-        #history = champion_wins_and_rate_team(match, cursor)
-        #history_wins_diff = np.zeros(2)
-        #history_wins_diff[0] = history[0] - history[2]
-        #history_wins_diff[1] = history[1] - history[3]
-        #zero_to_end = team_features_zero_to_end(match, cursor)
-        #if zero_to_end is None:
-        #    continue
-        #zero_to_end_diff = zero_to_end[:4] - zero_to_end[4:]
+        #zero_to_diff = zero_to_[:4] - zero_to_[4:]
 
         winner = np.array(df["winner"].iloc[player])[np.newaxis]
 
-        #dataset[i] = np.concatenate((champions, spells, masteries, dmg_types, dmg_percent, mastery_scores, mastery_scores_diff, champion_team_masteries, champion_team_diff, champion_summ_masteries, winner))
-        dataset[i] = np.concatenate((history, history_wins_diff, winner))
+        # PRE
+        dataset[i] = np.concatenate((champions, spells, masteries, dmg_types, dmg_percent, mastery_scores, mastery_scores_diff, champion_team_masteries, champion_team_diff, champion_summ_masteries, winner))
+#        dataset[i] = np.concatenate((272, 
+        # IN
+        #dataset[i] = np.concatenate((zero_to_, zero_to_diff, winner))
     dataset = remove_incomplete_instances(dataset)
 
     return dataset
@@ -1033,20 +682,7 @@ def main(args):
 
     model_name = args[0]
 
-    feature_models = {"pre1": build_model_pre1,
-                      "pre2": build_model_pre2,
-                      "pre3": build_model_pre3,
-                      "pre4": build_model_pre4,
-                      "pre5": build_model_pre5,
-                      "pre6": build_model_pre6,
-                      "pre7": build_model_pre7,
-                      "pre8": build_model_pre8,
-                      "pre9": build_model_pre9,
-                      "pre10": build_model_pre10,
-                      "pre11": build_model_pre11,
-                      "prein1": build_model_pre_in1,
-                      "prein1all": build_model_pre_in1_all,
-                      "ft": feature_testing}
+    feature_models = {"ft": feature_testing}
     model = feature_models[model_name](db, cursor)
     if model_name == "ft":
         model_name = args[1]

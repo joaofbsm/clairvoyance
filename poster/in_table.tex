@@ -1,0 +1,24 @@
+\documentclass[  
+convert={
+    size=4000x2000,
+    outext=.png
+  },
+]{standalone}
+
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{colortbl} 
+\usepackage{xcolor}
+\begin{document}
+
+\begin{tabular}{lccc} % suppress vertical whitespace at start and end
+\toprule
+Intervalos de tempo & AdaBoost & XGBoost & Random Forests\\
+\midrule
+\rowcolor{black!20} 0 a 10 minutos & 71.80\% (0.82\%) & 71.93\% (0.98\%) & 71.89\% (1.01\%)\\
+0 a 20 minutos & 81.95\% (0.75\%) & 82.03\% (0.79\%) & 81.85\% (0.69\%)\\
+\rowcolor{black!20} 0 a 30 minutos & 87.98\% (0.50\%) & 88.09\% (0.47\%) & 87.88\% (0.47\%)\\
+0 até o fim do jogo & 90.37\% (0.51\%) & 90.57\% (0.46\%) & 90.35\% (0.51\%)\\
+\midrule[\heavyrulewidth]
+\end{tabular}
+\end{document}

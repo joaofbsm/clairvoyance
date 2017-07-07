@@ -1,0 +1,10 @@
+416 -> ChampHistWinRateDiff = 175
+412 -> ChampHistBlueWinRate = 43
+417 -> ChampHistWinTotalDiff = 36
+414 -> ChampHistRedWinRate = 35
+413 -> ChampHistBlueWinTotal = 28
+396 -> ChampMasteryBlueSumm1 = 22
+399 -> ChampMasteryBlueSumm4 = 20
+404 -> ChampMasteryRedSumm4 = 20
+415 -> ChampHistRedWinTotal = 19
+397 -> ChampMasteryBlueSumm2 = 18

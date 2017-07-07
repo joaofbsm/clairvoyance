@@ -30,7 +30,7 @@ test_size = 0.2
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=seed)
 
 # fit model no training data
-model = xgboost.XGBClassifier()
+model = xgboost.XGBClassifier(n_estimators=300, learning_rate=0.1, max_depth=2)
 model.fit(X_train, y_train)
 
 # make predictions for test data
@@ -40,6 +40,9 @@ predictions = [round(value) for value in y_pred]
 # evaluate predictions
 accuracy = accuracy_score(y_test, predictions)
 print("Accuracy: %.2f%%" % (accuracy * 100.0))
+
+print(model.feature_importances_)
+xgboost.plot_importance(model)
 
 xgboost.plot_importance(model)
 print(model.feature_importances_)

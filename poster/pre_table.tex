@@ -1,0 +1,25 @@
+\documentclass{standalone}
+
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{colortbl} 
+\usepackage{xcolor}
+\begin{document}
+
+\begin{tabular}{lccc} % suppress vertical whitespace at start and end
+\toprule
+Atributos por base de dados & AdaBoost & XGBoost & Random Forests\\
+\midrule
+\rowcolor{black!20} Campeões por time & 52.41\% (0.46\%) & 52.89\% (0.30\%) & 51.11\% (0.63\%)\\
+Feitiços de invocador por time & 51.24\% (0.37\%) & 51.14\% (0.23\%) & 50.61\% (0.41\%)\\
+\rowcolor{black!20} Talentos de invocador por time & 52.37\% (0.48\%) & 52.53\% (0.15\%) & 50.61\% (0.43\%)\\
+Tipos/capacidade de dano por campeão & 51.01\% (0.38\%) & 51.39\% (0.25\%) & 50.31\% (0.55\%)\\
+\rowcolor{black!20} Soma das maestrias de campeão por invocador & 51.38\% (0.30\%) & 51.37\% (0.33\%) & 50.29\% (0.68\%)\\
+Maestria de invocador com campeão escolhido& 58.78\% (0.72\%) & 58.63\% (0.62\%) & 54.68\% (0.58\%)\\
+\rowcolor{black!20} Vitórias por invocador & 66.46\% (2.52\%) & 66.91\% (2.59\%) & 62.41\% (2.53\%)\\
+Vitórias para campeão escolhido por invocador& 89.08\% (1.93\%) & 89.29\% (1.99\%) & 87.74\% (2.12\%)\\
+\midrule[\heavyrulewidth]
+\rowcolor{black!20} Acurácia média & 59.07\% & 59.23\% & 57.18\% \\
+\midrule
+\end{tabular}
+\end{document}
